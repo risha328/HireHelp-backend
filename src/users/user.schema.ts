@@ -9,6 +9,11 @@ export enum Role {
   CANDIDATE = 'CANDIDATE',
 }
 
+export enum Gender {
+  MALE = 'MALE',
+  FEMALE = 'FEMALE',
+}
+
 @Schema({ timestamps: true })
 export class User {
   @Prop({ required: true })
@@ -28,6 +33,27 @@ export class User {
 
   @Prop({ default: false })
   emailVerified: boolean;
+
+  @Prop({ enum: Gender })
+  gender?: Gender;
+
+  @Prop()
+  phone?: string;
+
+  @Prop()
+  title?: string;
+
+  @Prop()
+  company?: string;
+
+  @Prop()
+  location?: string;
+
+  @Prop()
+  website?: string;
+
+  @Prop()
+  bio?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

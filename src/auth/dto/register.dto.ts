@@ -1,5 +1,5 @@
-import { IsEmail, IsNotEmpty, IsString, IsDateString, IsEnum, MinLength, Matches } from 'class-validator';
-import { Role } from '../../users/user.schema';
+import { IsEmail, IsNotEmpty, IsString, IsDateString, IsEnum, MinLength, Matches, IsOptional } from 'class-validator';
+import { Role, Gender } from '../../users/user.schema';
 
 export class RegisterDto {
   @IsNotEmpty()
@@ -23,4 +23,8 @@ export class RegisterDto {
 
   @IsEnum(Role)
   role: Role;
+
+  @IsOptional()
+  @IsEnum(Gender)
+  gender?: Gender;
 }

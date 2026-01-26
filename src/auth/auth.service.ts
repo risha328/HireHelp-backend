@@ -15,7 +15,7 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto): Promise<{ access_token: string; refresh_token: string; user: any }> {
-    const { name, email, password, confirmPassword, dateOfBirth, role } = registerDto;
+    const { name, email, password, confirmPassword, dateOfBirth, role, gender } = registerDto;
 
     if (password !== confirmPassword) {
       throw new ConflictException('Passwords do not match');
@@ -34,6 +34,7 @@ export class AuthService {
       password: hashedPassword,
       dateOfBirth,
       role,
+      gender,
       emailVerified: false, // Placeholder for email verification
     });
 
