@@ -7,11 +7,14 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { User, UserSchema } from '../users/user.schema';
 
+const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+console.log('JWT Module initialized with secret:', jwtSecret.substring(0, 10) + '...');
+
 @Module({
   imports: [
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your-secret-key',
+      secret: jwtSecret,
       signOptions: { expiresIn: '15m' },
     }),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
