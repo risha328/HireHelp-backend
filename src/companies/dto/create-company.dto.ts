@@ -1,4 +1,4 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsIn } from 'class-validator';
 
 export class CreateCompanyDto {
   @IsString()
@@ -14,4 +14,24 @@ export class CreateCompanyDto {
 
   @IsString()
   ownerId: string;
+
+  @IsOptional()
+  @IsString()
+  industry?: string;
+
+  @IsOptional()
+  @IsString()
+  size?: string;
+
+  @IsOptional()
+  @IsString()
+  website?: string;
+
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @IsOptional()
+  @IsIn(['pending', 'verified', 'rejected'])
+  verificationStatus?: string;
 }

@@ -16,6 +16,21 @@ export class Company {
 
   @Prop({ required: true })
   ownerId: string;
+
+  @Prop()
+  industry?: string;
+
+  @Prop()
+  size?: string;
+
+  @Prop()
+  website?: string;
+
+  @Prop()
+  location?: string;
+
+  @Prop({ default: 'pending' })
+  verificationStatus: string; // 'pending', 'verified', 'rejected'
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);
