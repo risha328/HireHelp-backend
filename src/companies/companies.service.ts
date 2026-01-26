@@ -12,8 +12,13 @@ export class CompaniesService {
   ) {}
 
   async create(createCompanyDto: CreateCompanyDto): Promise<Company> {
-    const createdCompany = new this.companyModel(createCompanyDto);
-    return createdCompany.save();
+    try {
+      const createdCompany = new this.companyModel(createCompanyDto);
+      return await createdCompany.save();
+    } catch (error) {
+      console.error('Error creating company:', error);
+      throw error;
+    }
   }
 
   async findAll(): Promise<Company[]> {
@@ -30,5 +35,9 @@ export class CompaniesService {
 
   async remove(id: string): Promise<Company | null> {
     return this.companyModel.findByIdAndDelete(id).exec();
+  }
+
+  async findByOwnerId(ownerId: string): Promise<Company | null> {
+    return this.companyModel.findOne({ ownerId }).exec();
   }
 }
