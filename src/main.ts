@@ -17,6 +17,9 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // Serve static files from uploads directory
+  app.use('/uploads', express.static('uploads'));
+
   app.useGlobalPipes(new ValidationPipe({
     transform: true,
     whitelist: true,
