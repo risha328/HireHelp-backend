@@ -31,9 +31,14 @@ export class CompaniesController {
   @Get('my-company')
   @ApiOperation({ summary: 'Get current user\'s company' })
   @ApiResponse({ status: 200, description: 'Company retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Company not found' })
   async getMyCompany(@Req() req: any) {
     const userId = req.user.userId;
-    return this.companiesService.findByOwnerId(userId);
+    const company = await this.companiesService.getMyCompany(userId);
+    if (!company) {
+      return { message: 'No company found for this user', company: null };
+    }
+    return { company };
   }
 
   @Get(':id')
@@ -91,5 +96,19 @@ export class CompaniesController {
       logoUrl,
       filename: file.filename,
     };
+  }
+
+  @Patch(':id/verify')
+  @ApiOperation({ summary: 'Verify a company (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Company verified successfully' })
+  verifyCompany(@Param('id') id: string) {
+    return this.companiesService.verifyCompany(id);
+  }
+
+  @Patch(':id/reject')
+  @ApiOperation({ summary: 'Reject a company (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Company rejected successfully' })
+  rejectCompany(@Param('id') id: string) {
+    return this.companiesService.rejectCompany(id);
   }
 }
