@@ -14,7 +14,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<{ accessToken: string; refreshToken: string }> {
+  async register(registerDto: RegisterDto): Promise<{ access_token: string; refresh_token: string; user: any }> {
     const { name, email, password, confirmPassword, dateOfBirth, role } = registerDto;
 
     if (password !== confirmPassword) {
@@ -39,14 +39,23 @@ export class AuthService {
 
     await user.save();
 
-    const payload = { email: user.email, sub: user._id, role: user.role };
-    const accessToken = this.jwtService.sign(payload);
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+    const payload = { email: user.email, sub: user._id.toString(), role: user.role };
+    const access_token = this.jwtService.sign(payload);
+    const refresh_token = this.jwtService.sign(payload, { expiresIn: '7d' });
 
-    return { accessToken, refreshToken };
+    return {
+      access_token,
+      refresh_token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    };
   }
 
-  async login(loginDto: LoginDto): Promise<{ accessToken: string; refreshToken: string }> {
+  async login(loginDto: LoginDto): Promise<{ access_token: string; refresh_token: string; user: any }> {
     const { email, password } = loginDto;
 
     const user = await this.userModel.findOne({ email });
@@ -59,11 +68,20 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { email: user.email, sub: user._id, role: user.role };
-    const accessToken = this.jwtService.sign(payload);
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+    const payload = { email: user.email, sub: user._id.toString(), role: user.role };
+    const access_token = this.jwtService.sign(payload);
+    const refresh_token = this.jwtService.sign(payload, { expiresIn: '7d' });
 
-    return { accessToken, refreshToken };
+    return {
+      access_token,
+      refresh_token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    };
   }
 
   async refresh(token: string): Promise<{ accessToken: string }> {
@@ -74,7 +92,7 @@ export class AuthService {
         throw new UnauthorizedException('Invalid token');
       }
 
-      const newPayload = { email: user.email, sub: user._id, role: user.role };
+      const newPayload = { email: user.email, sub: user._id.toString(), role: user.role };
       const accessToken = this.jwtService.sign(newPayload);
 
       return { accessToken };

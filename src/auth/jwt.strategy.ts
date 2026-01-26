@@ -5,6 +5,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from '../users/user.schema';
 
+const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
@@ -13,15 +15,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'your-secret-key',
+      secretOrKey: jwtSecret,
     });
+    console.log('JwtStrategy initialized with secret:', jwtSecret.substring(0, 10) + '...');
   }
 
   async validate(payload: any) {
-    const user = await this.userModel.findById(payload.sub);
-    if (!user) {
-      throw new UnauthorizedException();
+    try {
+      console.log('JWT Validation - payload:', payload);
+      const user = await this.userModel.findById(payload.sub);
+      if (!user) {
+        console.log('User not found for ID:', payload.sub);
+        throw new UnauthorizedException('User not found');
+      }
+      console.log('User validated successfully:', user.email);
+      return { userId: user._id.toString(), email: user.email, role: user.role };
+    } catch (error) {
+      console.error('JWT validation error:', error);
+      throw new UnauthorizedException('Invalid token');
     }
-    return { userId: user._id, email: user.email, role: user.role };
   }
 }
