@@ -47,6 +47,9 @@ export class User {
   company?: string;
 
   @Prop()
+  companyId?: string;
+
+  @Prop()
   location?: string;
 
   @Prop()
