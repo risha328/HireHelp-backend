@@ -20,4 +20,8 @@ export class UsersService {
   async updateResumeUrl(id: string, resumeUrl: string): Promise<User | null> {
     return this.userModel.findByIdAndUpdate(id, { resumeUrl }, { new: true }).select('-password').exec();
   }
+
+  async findByRole(role: string): Promise<User[]> {
+    return this.userModel.find({ role }).select('-password').exec();
+  }
 }
