@@ -54,6 +54,9 @@ export class User {
 
   @Prop()
   bio?: string;
+
+  @Prop()
+  resumeUrl?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
