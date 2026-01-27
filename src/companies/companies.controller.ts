@@ -34,10 +34,13 @@ export class CompaniesController {
   @ApiResponse({ status: 404, description: 'Company not found' })
   async getMyCompany(@Req() req: any) {
     const userId = req.user.userId;
+    console.log('getMyCompany called with userId:', userId);
     const company = await this.companiesService.getMyCompany(userId);
     if (!company) {
+      console.log('No company found for userId:', userId);
       return { message: 'No company found for this user', company: null };
     }
+    console.log('Company found:', company.name);
     return { company };
   }
 
