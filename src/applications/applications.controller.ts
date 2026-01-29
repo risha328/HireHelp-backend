@@ -32,6 +32,13 @@ export class ApplicationsController {
     return this.applicationsService.findByCandidate(req.user.userId);
   }
 
+  @Get()
+  @Roles(Role.SUPER_ADMIN)
+  @UseGuards(RolesGuard)
+  findAll() {
+    return this.applicationsService.findAll();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.applicationsService.findOne(id);
