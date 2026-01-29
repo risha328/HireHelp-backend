@@ -65,4 +65,79 @@ export class EmailService {
       throw error;
     }
   }
+
+  async sendHireEmail(candidateEmail: string, candidateName: string, jobTitle: string, companyName: string): Promise<void> {
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: candidateEmail,
+      subject: `Congratulations! You've been hired for ${jobTitle}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Congratulations ${candidateName}!</h2>
+          <p>We are thrilled to inform you that you've been selected for the position of <strong>${jobTitle}</strong> at <strong>${companyName}</strong>.</p>
+          <p>The hiring team will be in touch with you soon to discuss the next steps, including your offer details.</p>
+          <p>Welcome to the team!</p>
+          <p>Best regards,<br>The HireHelp Team</p>
+        </div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Hire email sent to ${candidateEmail}`);
+    } catch (error) {
+      console.error('Error sending hire email:', error);
+      throw error;
+    }
+  }
+
+  async sendRejectionFromUnderReviewEmail(candidateEmail: string, candidateName: string, jobTitle: string, companyName: string): Promise<void> {
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: candidateEmail,
+      subject: `Application Update for ${jobTitle}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <p>Hello ${candidateName},</p>
+          <p>Thank you for applying for the ${jobTitle} position at ${companyName}.</p>
+          <p>After careful review, we will not be moving forward with your application at this time.</p>
+          <p>We encourage you to apply for future opportunities.</p>
+          <p>Best regards,<br>Hiring Team<br>${companyName}<br>(via HireHelp)</p>
+        </div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Rejection email (from under review) sent to ${candidateEmail}`);
+    } catch (error) {
+      console.error('Error sending rejection email:', error);
+      throw error;
+    }
+  }
+
+  async sendRejectionFromShortlistedEmail(candidateEmail: string, candidateName: string, jobTitle: string, companyName: string): Promise<void> {
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: candidateEmail,
+      subject: `Application Update for ${jobTitle}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <p>Hello ${candidateName},</p>
+          <p>Thank you for taking the time to interview with us for the ${jobTitle} position at ${companyName}. We truly appreciate the effort you put into the interview process and the opportunity to learn more about your skills and experience.</p>
+          <p>After careful consideration, we regret to inform you that we will not be moving forward with your application at this stage. This was a difficult decision due to the high quality of candidates we interviewed.</p>
+          <p>We encourage you to apply for future opportunities with ${companyName} that align with your profile. We wish you the very best in your job search and future endeavors.</p>
+          <p>Warm regards,<br>Hiring Team<br>${companyName}<br>(via HireHelp)</p>
+        </div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Rejection email (from shortlisted) sent to ${candidateEmail}`);
+    } catch (error) {
+      console.error('Error sending rejection email:', error);
+      throw error;
+    }
+  }
 }
