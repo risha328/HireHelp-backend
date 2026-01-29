@@ -17,7 +17,22 @@ export class ApplicationsService {
       ...createApplicationDto,
       candidateId,
     });
-    return application.save();
+    await application.save();
+    await application.populate(['candidateId', 'jobId', 'companyId']);
+
+    try {
+      await this.emailService.sendApplicationConfirmationEmail(
+        (application.candidateId as any).email,
+        (application.candidateId as any).name,
+        (application.jobId as any).title,
+        (application.companyId as any).name,
+      );
+    } catch (error) {
+      console.error('Failed to send application confirmation email:', error);
+      // Don't throw error to avoid breaking application creation
+    }
+
+    return application;
   }
 
   async findByCompany(companyId: string): Promise<Application[]> {
