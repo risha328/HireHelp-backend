@@ -64,6 +64,16 @@ export class ApplicationsService {
     return application;
   }
 
+  async findAll(): Promise<Application[]> {
+    return this.applicationModel
+      .find({ resumeUrl: { $exists: true, $ne: null } })
+      .populate('candidateId', 'name email phone')
+      .populate('jobId', 'title')
+      .populate('companyId', 'name')
+      .sort({ createdAt: -1 })
+      .exec();
+  }
+
   async updateStatus(id: string, status: string, notes?: string): Promise<Application> {
     // Get the current application to check previous status
     const currentApplication = await this.applicationModel.findById(id).exec();
