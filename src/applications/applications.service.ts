@@ -85,7 +85,7 @@ export class ApplicationsService {
       throw new NotFoundException('Application not found');
     }
 
-    // Send email notification only if status changed from UNDER_REVIEW to SHORTLISTED
+    // Send email notifications based on status changes
     if (currentApplication.status === ApplicationStatus.UNDER_REVIEW && status === ApplicationStatus.SHORTLISTED) {
       try {
         await this.emailService.sendShortlistEmail(
@@ -96,6 +96,39 @@ export class ApplicationsService {
         );
       } catch (error) {
         console.error('Failed to send shortlist email:', error);
+        // Don't throw error to avoid breaking the status update
+      }
+    } else if (currentApplication.status === ApplicationStatus.SHORTLISTED && status === ApplicationStatus.HIRED) {
+      try {
+        await this.emailService.sendHireEmail(
+          (application.candidateId as any).email,
+          (application.candidateId as any).name,
+          (application.jobId as any).title,
+          (application.companyId as any).name,
+        );
+      } catch (error) {
+        console.error('Failed to send hire email:', error);
+        // Don't throw error to avoid breaking the status update
+      }
+    } else if (status === ApplicationStatus.REJECTED) {
+      try {
+        if (currentApplication.status === ApplicationStatus.UNDER_REVIEW) {
+          await this.emailService.sendRejectionFromUnderReviewEmail(
+            (application.candidateId as any).email,
+            (application.candidateId as any).name,
+            (application.jobId as any).title,
+            (application.companyId as any).name,
+          );
+        } else if (currentApplication.status === ApplicationStatus.SHORTLISTED) {
+          await this.emailService.sendRejectionFromShortlistedEmail(
+            (application.candidateId as any).email,
+            (application.candidateId as any).name,
+            (application.jobId as any).title,
+            (application.companyId as any).name,
+          );
+        }
+      } catch (error) {
+        console.error('Failed to send rejection email:', error);
         // Don't throw error to avoid breaking the status update
       }
     }
