@@ -1,13 +1,14 @@
-# Company Profile APIs Implementation
+# TODO: Implement Email Notification for Shortlisted Candidates
 
-## Tasks
-- [x] Update src/users/user.schema.ts to add companyId?: string;
-- [x] Create src/companies/company.schema.ts
-- [x] Create src/companies/dto/create-company.dto.ts
-- [x] Create src/companies/dto/update-company.dto.ts
-- [x] Create src/companies/companies.service.ts
-- [x] Create src/companies/companies.controller.ts
-- [x] Create src/companies/companies.module.ts
-- [x] Update src/app.module.ts to import CompaniesModule and MulterModule
-- [ ] Verify file changes
-- [ ] Test the APIs
+## Installation Required
+- Install nodemailer: `npm install nodemailer`
+- Install types: ` `
+
+## Implementation Steps
+- [x] Create notifications module (notifications.module.ts)
+- [x] Create email service (email.service.ts)
+- [x] Update applications.service.ts to send email on status change to SHORTLISTED
+- [x] Import notifications module in applications.module.ts
+- [x] Import notifications module in app.module.ts
+- [x] Fix TypeScript errors and dependency injection
+- [ ] Test the email functionality (ready for testing)
