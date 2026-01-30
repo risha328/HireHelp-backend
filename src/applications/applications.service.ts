@@ -46,7 +46,14 @@ export class ApplicationsService {
   async findByCandidate(candidateId: string): Promise<Application[]> {
     return this.applicationModel
       .find({ candidateId })
-      .populate('jobId', 'title companyId')
+      .populate({
+        path: 'jobId',
+        select: 'title companyId location salary jobType',
+        populate: {
+          path: 'companyId',
+          select: 'name logoUrl'
+        }
+      })
       .populate('companyId', 'name')
       .exec();
   }
