@@ -9,6 +9,7 @@ import { CompaniesModule } from './companies/companies.module';
 import { JobsModule } from './jobs/jobs.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     CompaniesModule,
     JobsModule,
     ApplicationsModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
