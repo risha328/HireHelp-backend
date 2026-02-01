@@ -1,4 +1,5 @@
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateApplicationDto {
   @IsNotEmpty()
@@ -16,4 +17,29 @@ export class CreateApplicationDto {
   @IsOptional()
   @IsString()
   resumeUrl?: string;
+
+  // Additional fields for form data submission
+  @IsOptional()
+  @IsString()
+  firstName?: string;
+
+  @IsOptional()
+  @IsString()
+  lastName?: string;
+
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  portfolioUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  linkedinUrl?: string;
 }
