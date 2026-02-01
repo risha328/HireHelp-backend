@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Application, ApplicationDocument, ApplicationStatus } from './application.schema';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { EmailService } from '../notifications/email.service';
@@ -12,10 +12,56 @@ export class ApplicationsService {
     private emailService: EmailService,
   ) {}
 
-  async create(createApplicationDto: CreateApplicationDto, candidateId: string): Promise<Application> {
+  async create(
+    createApplicationDto: CreateApplicationDto,
+    candidateId: string,
+    files?: { resume?: Express.Multer.File[], coverLetterFile?: Express.Multer.File[] }
+  ): Promise<Application> {
+    let resumeUrl: string | undefined;
+    let coverLetterUrl: string | undefined;
+
+    // Handle file uploads
+    if (files?.resume && files.resume[0]) {
+      const resumeFile = files.resume[0];
+      const timestamp = Date.now();
+      const filename = `${candidateId}-${timestamp}-${resumeFile.originalname}`;
+      const fs = require('fs');
+      const path = require('path');
+
+      // Ensure uploads directory exists
+      const uploadsDir = path.join(process.cwd(), 'uploads', 'resumes');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const filePath = path.join(uploadsDir, filename);
+      fs.writeFileSync(filePath, resumeFile.buffer);
+      resumeUrl = `/uploads/resumes/${filename}`;
+    }
+
+    if (files?.coverLetterFile && files.coverLetterFile[0]) {
+      const coverLetterFile = files.coverLetterFile[0];
+      const timestamp = Date.now();
+      const filename = `${candidateId}-${timestamp}-${coverLetterFile.originalname}`;
+      const fs = require('fs');
+      const path = require('path');
+
+      // Ensure uploads directory exists
+      const uploadsDir = path.join(process.cwd(), 'uploads', 'resumes'); // Using same directory for simplicity
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const filePath = path.join(uploadsDir, filename);
+      fs.writeFileSync(filePath, coverLetterFile.buffer);
+      coverLetterUrl = `/uploads/resumes/${filename}`;
+    }
+
     const application = new this.applicationModel({
       ...createApplicationDto,
       candidateId,
+      resumeUrl: resumeUrl || createApplicationDto.resumeUrl,
+      coverLetter: createApplicationDto.coverLetter || coverLetterUrl,
     });
     await application.save();
     await application.populate(['candidateId', 'jobId', 'companyId']);
@@ -36,11 +82,22 @@ export class ApplicationsService {
   }
 
   async findByCompany(companyId: string): Promise<Application[]> {
-    return this.applicationModel
+    console.log('findByCompany called with companyId:', companyId);
+    const applications = await this.applicationModel
       .find({ companyId })
       .populate('candidateId', 'name email phone')
-      .populate('jobId', 'title')
+      .populate({
+        path: 'jobId',
+        select: 'title companyId location salary jobType',
+        populate: {
+          path: 'companyId',
+          select: 'name logoUrl'
+        }
+      })
+      .populate('companyId', 'name')
       .exec();
+    console.log('findByCompany found applications:', applications.length);
+    return applications;
   }
 
   async findByCandidate(candidateId: string): Promise<Application[]> {
@@ -73,7 +130,7 @@ export class ApplicationsService {
 
   async findAll(): Promise<Application[]> {
     return this.applicationModel
-      .find({ resumeUrl: { $exists: true, $ne: null } })
+      .find({})
       .populate('candidateId', 'name email phone')
       .populate('jobId', 'title')
       .populate('companyId', 'name')

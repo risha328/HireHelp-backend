@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { ApplicationsService } from './applications.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -14,8 +15,16 @@ export class ApplicationsController {
   @Post()
   @Roles(Role.CANDIDATE)
   @UseGuards(RolesGuard)
-  create(@Body() createApplicationDto: CreateApplicationDto, @Request() req) {
-    return this.applicationsService.create(createApplicationDto, req.user.userId);
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'resume', maxCount: 1 },
+    { name: 'coverLetterFile', maxCount: 1 },
+  ]))
+  create(
+    @Body() createApplicationDto: CreateApplicationDto,
+    @Request() req,
+    @UploadedFiles() files?: { resume?: Express.Multer.File[], coverLetterFile?: Express.Multer.File[] }
+  ) {
+    return this.applicationsService.create(createApplicationDto, req.user.userId, files);
   }
 
   @Get('company/:companyId')
