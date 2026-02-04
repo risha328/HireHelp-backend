@@ -10,6 +10,7 @@ import { JobsModule } from './jobs/jobs.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { RoundsModule } from './rounds/rounds.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     JobsModule,
     ApplicationsModule,
     AnalyticsModule,
+    RoundsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
