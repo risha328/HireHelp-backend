@@ -1,15 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Application, ApplicationDocument, ApplicationStatus } from './application.schema';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { EmailService } from '../notifications/email.service';
+import { RoundsService } from '../rounds/rounds.service';
 
 @Injectable()
 export class ApplicationsService {
   constructor(
     @InjectModel(Application.name) private applicationModel: Model<ApplicationDocument>,
     private emailService: EmailService,
+    @Inject(forwardRef(() => RoundsService))
+    private roundsService: RoundsService,
   ) {}
 
   async create(
@@ -115,6 +118,16 @@ export class ApplicationsService {
       .exec();
   }
 
+  async findByCandidateEmail(email: string): Promise<Application | null> {
+    const application = await this.applicationModel
+      .findOne({ 'candidateId.email': email })
+      .populate('candidateId', 'name email phone')
+      .populate('jobId', 'title')
+      .populate('companyId', 'name')
+      .exec();
+    return application;
+  }
+
   async findOne(id: string): Promise<Application> {
     const application = await this.applicationModel
       .findById(id)
@@ -160,7 +173,27 @@ export class ApplicationsService {
     }
 
     // Send email notifications based on status changes
-    if (currentApplication.status === ApplicationStatus.UNDER_REVIEW && status === ApplicationStatus.SHORTLISTED) {
+    if (status === ApplicationStatus.UNDER_REVIEW) {
+      try {
+        // Find the first MCQ round for this job
+        const mcqRounds = await this.roundsService.findByJob((application.jobId as any)._id.toString());
+        const firstMcqRound = mcqRounds.find(round => round.type === 'mcq' && round.googleFormLink);
+
+        if (firstMcqRound && firstMcqRound.googleFormLink) {
+          await this.emailService.sendMcqRoundEmail(
+            (application.candidateId as any).email,
+            (application.candidateId as any).name,
+            (application.jobId as any).title,
+            (application.companyId as any).name,
+            firstMcqRound.googleFormLink,
+            firstMcqRound.name,
+          );
+        }
+      } catch (error) {
+        console.error('Failed to send MCQ round email:', error);
+        // Don't throw error to avoid breaking the status update
+      }
+    } else if (currentApplication.status === ApplicationStatus.UNDER_REVIEW && status === ApplicationStatus.SHORTLISTED) {
       try {
         await this.emailService.sendShortlistEmail(
           (application.candidateId as any).email,

@@ -140,4 +140,62 @@ export class EmailService {
       throw error;
     }
   }
+
+  async sendMcqRoundEmail(candidateEmail: string, candidateName: string, jobTitle: string, companyName: string, googleFormLink: string, roundName: string): Promise<void> {
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: candidateEmail,
+      subject: `MCQ Assessment for ${jobTitle} - ${roundName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Assessment Invitation</h2>
+          <p>Dear ${candidateName},</p>
+          <p>Congratulations! You've progressed to the next stage of our hiring process for the <strong>${jobTitle}</strong> position at <strong>${companyName}</strong>.</p>
+          <p>You have been assigned to the <strong>${roundName}</strong> round, which consists of an MCQ (Multiple Choice Questions) assessment.</p>
+          <p>Please complete the assessment by clicking the link below:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${googleFormLink}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Start MCQ Assessment</a>
+          </div>
+          <p><strong>Important:</strong> Please complete the assessment within the specified timeframe. Your responses will be reviewed by our hiring team.</p>
+          <p>If you have any questions or need assistance, please don't hesitate to contact us.</p>
+          <p>Best regards,<br>The Hiring Team<br>${companyName}<br>(via HireHelp)</p>
+        </div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`MCQ round email sent to ${candidateEmail}`);
+    } catch (error) {
+      console.error('Error sending MCQ round email:', error);
+      throw error;
+    }
+  }
+
+  async sendNextRoundEmail(candidateEmail: string, candidateName: string, jobTitle: string, companyName: string, nextRoundName: string): Promise<void> {
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: candidateEmail,
+      subject: `Congratulations! You've Advanced to the Next Round - ${jobTitle}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Congratulations!</h2>
+          <p>Dear ${candidateName},</p>
+          <p>Great news! You've successfully passed the previous round and have been selected to move forward in our hiring process for the <strong>${jobTitle}</strong> position at <strong>${companyName}</strong>.</p>
+          <p>You are now scheduled for the next round: <strong>${nextRoundName}</strong>.</p>
+          <p>Our team will be in touch soon with more details about the next steps, including scheduling and any preparation materials.</p>
+          <p>We look forward to speaking with you again!</p>
+          <p>Best regards,<br>The Hiring Team<br>${companyName}<br>(via HireHelp)</p>
+        </div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Next round email sent to ${candidateEmail}`);
+    } catch (error) {
+      console.error('Error sending next round email:', error);
+      throw error;
+    }
+  }
 }
