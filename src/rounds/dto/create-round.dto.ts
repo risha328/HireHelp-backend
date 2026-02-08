@@ -27,6 +27,10 @@ export class CreateRoundDto {
   googleFormLink?: string;
 
   @IsOptional()
+  @IsUrl()
+  googleSheetLink?: string;
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => MCQQuestion)
