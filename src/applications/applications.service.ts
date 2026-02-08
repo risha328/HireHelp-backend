@@ -255,7 +255,7 @@ export class ApplicationsService {
               dateStr,
               timeStr,
               newRoundObj.interviewMode || 'Offline',
-              newRoundObj.platform || 'HireHelp Office\nWhitefield, Bengaluru',
+              newRoundObj.meetingLink || newRoundObj.platform || 'HireHelp Office\nWhitefield, Bengaluru',
               newRoundObj.instructions || ''
             );
             console.log('✓ Candidate interview notification email sent successfully!');
