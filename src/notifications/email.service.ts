@@ -373,11 +373,6 @@ export class EmailService {
   ): Promise<void> {
     const isOffline = mode.toLowerCase() === 'offline';
 
-    // Default offline venue if none provided, or use the param
-    const venueDisplay = isOffline
-      ? (venueOrPlatform || 'HireHelp Office\nWhitefield, Bengaluru')
-      : `Platform: ${venueOrPlatform}`;
-
     const mailOptions = {
       from: process.env.SMTP_USER,
       to: candidateEmail,
@@ -396,9 +391,9 @@ export class EmailService {
               <li style="margin-bottom: 8px;">• <strong>Date:</strong> ${date}</li>
               <li style="margin-bottom: 8px;">• <strong>Time:</strong> ${time}</li>
               <li style="margin-bottom: 8px;">• <strong>Mode:</strong> ${mode}</li>
-              <li style="margin-bottom: 8px;">• <strong>Venue:</strong><br>
-                ${venueDisplay.replace(/\n/g, '<br>')}
-              </li>
+              ${venueOrPlatform ? `<li style="margin-bottom: 8px;">• <strong>Meeting Link:</strong><br>
+                <a href="${venueOrPlatform}" style="color: #007bff; text-decoration: none;">${venueOrPlatform}</a>
+              </li>` : ''}
             </ul>
           </div>
 
@@ -408,7 +403,7 @@ export class EmailService {
               <li>Prepare for technical questions related to fundamentals and problem-solving</li>
               <li>Ensure you have a stable internet connection if online</li>
               <li>Be ready to discuss your experience and approach</li>
-              <li>Arrive 10 minutes early for offline interviews</li>
+              ${isOffline ? '<li>Arrive 10 minutes early for offline interviews</li>' : '<li>Join the meeting 5 minutes early</li>'}
             </ul>
           </div>
 
