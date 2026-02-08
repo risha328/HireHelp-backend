@@ -46,6 +46,15 @@ export class Round {
   @Prop()
   googleSheetLink?: string;
 
+  @Prop()
+  platform?: string; // For Coding Test
+
+  @Prop()
+  duration?: string; // e.g. "60 Mins"
+
+  @Prop()
+  instructions?: string; // Specific instructions for the round
+
   @Prop({ type: [MCQQuestion] })
   mcqQuestions?: MCQQuestion[];
 

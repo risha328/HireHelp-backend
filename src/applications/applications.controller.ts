@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request, UseInter
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { ApplicationsService } from './applications.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
+import { UpdateApplicationStatusDto } from './dto/update-application-status.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -10,7 +11,7 @@ import { Role } from '../users/user.schema';
 @Controller('applications')
 @UseGuards(JwtAuthGuard)
 export class ApplicationsController {
-  constructor(private readonly applicationsService: ApplicationsService) {}
+  constructor(private readonly applicationsService: ApplicationsService) { }
 
   @Post()
   @Roles(Role.CANDIDATE)
@@ -58,8 +59,13 @@ export class ApplicationsController {
   @UseGuards(RolesGuard)
   updateStatus(
     @Param('id') id: string,
-    @Body() body: { status: string; notes?: string }
+    @Body() updateStatusDto: UpdateApplicationStatusDto
   ) {
-    return this.applicationsService.updateStatus(id, body.status, body.notes);
+    return this.applicationsService.updateStatus(
+      id,
+      updateStatusDto.status,
+      updateStatusDto.notes,
+      updateStatusDto.currentRound
+    );
   }
 }
