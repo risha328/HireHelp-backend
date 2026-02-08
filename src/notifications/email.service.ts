@@ -198,4 +198,90 @@ export class EmailService {
       throw error;
     }
   }
+
+  async sendCodingTestEmail(candidateEmail: string, candidateName: string, jobTitle: string, companyName: string, platformName: string, duration: string, instructions: string): Promise<void> {
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: candidateEmail,
+      subject: `Coding Test Invitation - ${jobTitle}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <p>Hi ${candidateName},</p>
+          
+          <p><strong>Congratulations 🎉</strong></p>
+          <p>You have been shortlisted for the Coding Test round for the <strong>${jobTitle}</strong> position at <strong>${companyName}</strong>.</p>
+          
+          <p>Please read the instructions carefully before attempting the test.</p>
+          
+          <h3 style="color: #333; margin-top: 20px;">Coding Test Instructions:</h3>
+          <ul style="line-height: 1.8;">
+            <li>• The coding test will be conducted online.</li>
+            <li>• The test link will be shared with you separately.</li>
+            <li>• The duration of the test will be <strong>${duration || 'TBD'}</strong> minutes.</li>
+            <li>• You are required to solve the given problem(s) within the allotted time.</li>
+            <li>• Any form of plagiarism or unfair practices may lead to disqualification.</li>
+            <li>• Ensure a stable internet connection during the test.</li>
+            <li>• Use only the allowed programming languages mentioned in the test instructions.</li>
+          </ul>
+          
+          <p style="margin-top: 20px;"><strong>Important Note:</strong></p>
+          <p>👉 The coding test link will be shared with you shortly. Please keep an eye on your registered email address.</p>
+          
+          <p style="margin-top: 20px;">If you have any questions, feel free to reach out to us.</p>
+          
+          <p style="margin-top: 30px;">Best of luck 👍</p>
+          <p>Regards,<br>${companyName} Hiring Team</p>
+        </div>
+      `,
+    };
+
+    console.log('📧 Attempting to send coding test email...');
+    console.log('SMTP Config:', {
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      user: process.env.SMTP_USER ? '***configured***' : 'NOT SET',
+    });
+
+    try {
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log(`✅ Coding test email sent successfully to ${candidateEmail}`);
+      console.log('Email result:', result);
+    } catch (error) {
+      console.error('❌ Error sending coding test email:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        command: error.command
+      });
+      throw error; // Throw error so we know when email fails
+    }
+  }
+
+  async sendMcqRejectionEmail(candidateEmail: string, candidateName: string, jobTitle: string, companyName: string): Promise<void> {
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: candidateEmail,
+      subject: `Update on Your Application – ${companyName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <p>Hi ${candidateName},</p>
+          <p>Thank you for taking the time to complete the MCQ assessment for the <strong>${jobTitle}</strong> role.</p>
+          <p>After careful evaluation, we regret to inform you that you have not been shortlisted for the next round at this time.</p>
+          <p>We truly appreciate your interest in <strong>${companyName}</strong> and encourage you to apply again in the future.</p>
+          <p>Wishing you success ahead.</p>
+          
+          <p>Regards,</p>
+          <p>${companyName} Hiring Team</p>
+        </div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`MCQ rejection email sent to ${candidateEmail}`);
+    } catch (error) {
+      console.error('Error sending MCQ rejection email:', error);
+      // Don't throw to prevent blocking
+    }
+  }
 }
