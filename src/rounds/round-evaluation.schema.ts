@@ -43,6 +43,9 @@ export class RoundEvaluation {
 
   @Prop({ default: false })
   isFinal: boolean;
+
+  @Prop([{ name: String, email: String }])
+  assignedInterviewers?: { name: string; email: string }[];
 }
 
 export const RoundEvaluationSchema = SchemaFactory.createForClass(RoundEvaluation);
