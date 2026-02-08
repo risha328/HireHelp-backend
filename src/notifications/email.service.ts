@@ -311,9 +311,9 @@ export class EmailService {
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
           <p>Hello ${interviewerName},</p>
-          
+
           <p>You have been assigned a <strong>Technical Interview (${mode})</strong> for the following candidate:</p>
-          
+
           <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #2c3e50;">Candidate Details</h3>
             <ul style="list-style-type: none; padding-left: 0;">
@@ -329,7 +329,7 @@ export class EmailService {
               <li style="margin-bottom: 8px;">• <strong>Date:</strong> ${date}</li>
               <li style="margin-bottom: 8px;">• <strong>Time:</strong> ${time}</li>
               <li style="margin-bottom: 8px;">• <strong>Mode:</strong> ${mode}</li>
-              <li style="margin-bottom: 8px;">• <strong>${isOffline ? 'Venue' : 'Link/Platform'}:</strong><br>
+              <li style="margin-bottom: 8px;">• <strong>Venue:</strong><br>
                 ${venueDisplay.replace(/\n/g, '<br>')}
               </li>
             </ul>
@@ -338,16 +338,14 @@ export class EmailService {
           <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #2c3e50;">Instructions for Interviewer</h3>
             <ul style="padding-left: 20px;">
-              ${instructions ? instructions.split('\n').map(i => `<li>${i}</li>`).join('') : `
-                <li>Assess technical fundamentals and problem-solving skills</li>
-                <li>Evaluate communication and approach</li>
-                <li>Provide feedback after the interview in the admin panel</li>
-              `}
+              <li>Assess technical fundamentals and problem-solving skills</li>
+              <li>Evaluate communication and approach</li>
+              <li>Provide feedback after the interview in the admin panel</li>
             </ul>
           </div>
-          
+
           <p>Please ensure you are available at the scheduled time.</p>
-          
+
           <p>Best regards,<br>HireHelp Admin System</p>
         </div>
       `,
@@ -359,6 +357,74 @@ export class EmailService {
     } catch (error) {
       console.error('Error sending interview assignment email:', error);
       // We don't throw here to allow round creation to succeed even if email fails
+    }
+  }
+
+  async sendCandidateInterviewNotificationEmail(
+    candidateEmail: string,
+    candidateName: string,
+    position: string,
+    experience: string,
+    date: string,
+    time: string,
+    mode: string,
+    venueOrPlatform: string,
+    instructions: string
+  ): Promise<void> {
+    const isOffline = mode.toLowerCase() === 'offline';
+
+    // Default offline venue if none provided, or use the param
+    const venueDisplay = isOffline
+      ? (venueOrPlatform || 'HireHelp Office\nWhitefield, Bengaluru')
+      : `Platform: ${venueOrPlatform}`;
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: candidateEmail,
+      subject: `Interview Scheduled - ${position}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+          <p>Hello ${candidateName},</p>
+
+          <p>Congratulations! You have progressed to the next stage of our hiring process for the <strong>${position}</strong> position.</p>
+
+          <p>You have been scheduled for a <strong>Technical Interview (${mode})</strong>.</p>
+
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #2c3e50;">Interview Schedule</h3>
+            <ul style="list-style-type: none; padding-left: 0;">
+              <li style="margin-bottom: 8px;">• <strong>Date:</strong> ${date}</li>
+              <li style="margin-bottom: 8px;">• <strong>Time:</strong> ${time}</li>
+              <li style="margin-bottom: 8px;">• <strong>Mode:</strong> ${mode}</li>
+              <li style="margin-bottom: 8px;">• <strong>Venue:</strong><br>
+                ${venueDisplay.replace(/\n/g, '<br>')}
+              </li>
+            </ul>
+          </div>
+
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #2c3e50;">Instructions for Candidate</h3>
+            <ul style="padding-left: 20px;">
+              <li>Prepare for technical questions related to fundamentals and problem-solving</li>
+              <li>Ensure you have a stable internet connection if online</li>
+              <li>Be ready to discuss your experience and approach</li>
+              <li>Arrive 10 minutes early for offline interviews</li>
+            </ul>
+          </div>
+
+          <p>Please ensure you are available at the scheduled time. If you have any questions or need to reschedule, please contact us immediately.</p>
+
+          <p>Best regards,<br>HireHelp Team</p>
+        </div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Candidate interview notification email sent to ${candidateEmail}`);
+    } catch (error) {
+      console.error('Error sending candidate interview notification email:', error);
+      // We don't throw here to allow status update to succeed even if email fails
     }
   }
 }

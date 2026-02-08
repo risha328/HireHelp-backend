@@ -137,6 +137,7 @@ export class RoundsService {
       applicationId,
       evaluatorId,
       status: EvaluationStatus.PENDING,
+      assignedInterviewers: round.interviewers || [], // Assign all interviewers from the round
     });
 
     const savedEvaluation = await roundEvaluation.save();
@@ -154,6 +155,36 @@ export class RoundsService {
         );
       } catch (error) {
         console.error('Failed to send MCQ round email:', error);
+      }
+    }
+
+    // If it's an interview round, send emails to assigned interviewers
+    if (round.type === RoundType.INTERVIEW && savedEvaluation.assignedInterviewers && savedEvaluation.assignedInterviewers.length > 0) {
+      try {
+        const dateStr = round.scheduledAt
+          ? new Date(round.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+          : 'TBD';
+
+        const timeStr = round.scheduledAt
+          ? new Date(round.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+          : 'TBD';
+
+        for (const interviewer of savedEvaluation.assignedInterviewers) {
+          await this.emailService.sendInterviewerAssignmentEmail(
+            interviewer.email,
+            interviewer.name,
+            (application.candidateId as any).name,
+            (application.jobId as any).title,
+            '[Fresher / X years]', // Placeholder since experience not stored
+            dateStr,
+            timeStr,
+            round.interviewMode || 'Offline',
+            round.platform || 'HireHelp Office\nWhitefield, Bengaluru',
+            round.instructions || ''
+          );
+        }
+      } catch (error) {
+        console.error('Failed to send interviewer assignment email:', error);
       }
     }
 

@@ -180,7 +180,7 @@ export class ApplicationsService {
     }
 
     // Send email notifications based on status changes
-    // Check for Round Change (e.g. to Coding Test)
+    // Check for Round Change (e.g. to Coding Test or Interview)
     console.log('=== Email Notification Debug ===');
     console.log('currentRound param:', currentRound);
     console.log('currentApplication.currentRound:', currentApplication.currentRound);
@@ -197,7 +197,9 @@ export class ApplicationsService {
             type: newRoundObj.type,
             platform: newRoundObj.platform,
             duration: newRoundObj.duration,
-            instructions: newRoundObj.instructions
+            instructions: newRoundObj.instructions,
+            scheduledAt: newRoundObj.scheduledAt,
+            interviewMode: newRoundObj.interviewMode
           });
 
           if (newRoundObj.type === RoundType.CODING) {
@@ -221,9 +223,44 @@ export class ApplicationsService {
               newRoundObj.duration || '',
               newRoundObj.instructions || ''
             );
-            console.log('✓ Email sent successfully!');
+            console.log('✓ Coding test email sent successfully!');
+          } else if (newRoundObj.type === RoundType.INTERVIEW) {
+            console.log('✓ Round type is INTERVIEW - sending candidate notification email...');
+
+            const dateStr = newRoundObj.scheduledAt
+              ? new Date(newRoundObj.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+              : 'TBD';
+
+            const timeStr = newRoundObj.scheduledAt
+              ? new Date(newRoundObj.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+              : 'TBD';
+
+            console.log('Email details:', {
+              to: (application.candidateId as any).email,
+              candidateName: (application.candidateId as any).name,
+              position: (application.jobId as any).title,
+              experience: '[Fresher / X years]',
+              date: dateStr,
+              time: timeStr,
+              mode: newRoundObj.interviewMode || 'Offline',
+              venueOrPlatform: newRoundObj.platform || 'HireHelp Office\nWhitefield, Bengaluru',
+              instructions: newRoundObj.instructions || ''
+            });
+
+            await this.emailService.sendCandidateInterviewNotificationEmail(
+              (application.candidateId as any).email,
+              (application.candidateId as any).name,
+              (application.jobId as any).title,
+              '[Fresher / X years]',
+              dateStr,
+              timeStr,
+              newRoundObj.interviewMode || 'Offline',
+              newRoundObj.platform || 'HireHelp Office\nWhitefield, Bengaluru',
+              newRoundObj.instructions || ''
+            );
+            console.log('✓ Candidate interview notification email sent successfully!');
           } else {
-            console.log('✗ Round type is NOT CODING:', newRoundObj.type);
+            console.log('✗ Round type is neither CODING nor INTERVIEW:', newRoundObj.type);
           }
         } else {
           console.log('✗ Round not found for ID:', currentRound);
