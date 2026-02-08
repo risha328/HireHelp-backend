@@ -10,13 +10,13 @@ export class JobsService {
   constructor(
     @InjectModel(Job.name) private jobModel: Model<JobDocument>,
     private readonly companiesService: CompaniesService,
-  ) {}
+  ) { }
 
   async create(createJobDto: CreateJobDto): Promise<Job> {
     try {
       // Validate that company exists and is verified
       const company = await this.companiesService.findOne(createJobDto.companyId);
-      
+
       if (!company) {
         throw new NotFoundException(`Company with ID ${createJobDto.companyId} not found`);
       }
@@ -36,11 +36,11 @@ export class JobsService {
   }
 
   async findAll(): Promise<Job[]> {
-    return this.jobModel.find({ status: 'active' }).populate('companyId').exec();
+    return this.jobModel.find({ status: 'active' }).populate('companyId').sort({ createdAt: -1 }).exec();
   }
 
   async findByCompany(companyId: string): Promise<Job[]> {
-    return this.jobModel.find({ companyId, status: 'active' }).exec();
+    return this.jobModel.find({ companyId, status: 'active' }).sort({ createdAt: -1 }).exec();
   }
 
   async findOne(id: string): Promise<Job | null> {

@@ -33,6 +33,9 @@ export class Application {
 
   @Prop()
   notes?: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'Round' })
+  currentRound?: Types.ObjectId;
 }
 
 export const ApplicationSchema = SchemaFactory.createForClass(Application);

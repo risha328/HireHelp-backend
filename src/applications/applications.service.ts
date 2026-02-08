@@ -13,7 +13,7 @@ export class ApplicationsService {
     private emailService: EmailService,
     @Inject(forwardRef(() => RoundsService))
     private roundsService: RoundsService,
-  ) {}
+  ) { }
 
   async create(
     createApplicationDto: CreateApplicationDto,
@@ -151,22 +151,28 @@ export class ApplicationsService {
       .exec();
   }
 
-  async updateStatus(id: string, status: string, notes?: string): Promise<Application> {
+  async updateStatus(id: string, status: string, notes?: string, currentRound?: string): Promise<Application> {
     // Get the current application to check previous status
     const currentApplication = await this.applicationModel.findById(id).exec();
     if (!currentApplication) {
       throw new NotFoundException('Application not found');
     }
 
+    const updateData: any = { status, notes };
+    if (currentRound !== undefined) {
+      updateData.currentRound = currentRound;
+    }
+
     const application = await this.applicationModel
       .findByIdAndUpdate(
         id,
-        { status, notes },
+        updateData,
         { new: true }
       )
       .populate('candidateId', 'name email phone')
       .populate('jobId', 'title')
       .populate('companyId', 'name')
+      .populate('currentRound')
       .exec();
     if (!application) {
       throw new NotFoundException('Application not found');
