@@ -43,6 +43,9 @@ export class Round {
   @Prop()
   googleFormLink?: string;
 
+  @Prop()
+  googleSheetLink?: string;
+
   @Prop({ type: [MCQQuestion] })
   mcqQuestions?: MCQQuestion[];
 

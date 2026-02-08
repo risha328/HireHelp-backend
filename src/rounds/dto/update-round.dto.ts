@@ -6,4 +6,8 @@ export class UpdateRoundDto extends PartialType(CreateRoundDto) {
   @IsOptional()
   @IsUrl()
   googleFormLink?: string;
+
+  @IsOptional()
+  @IsUrl()
+  googleSheetLink?: string;
 }
