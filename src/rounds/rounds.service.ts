@@ -45,7 +45,35 @@ export class RoundsService {
       }
 
       const createdRound = new this.roundModel(createRoundDto);
-      return await createdRound.save();
+      const savedRound = await createdRound.save();
+
+      // Send emails to interviewers if any
+      if (createRoundDto.interviewers && createRoundDto.interviewers.length > 0) {
+        const dateStr = createRoundDto.scheduledAt
+          ? new Date(createRoundDto.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+          : 'TBD';
+
+        const timeStr = createRoundDto.scheduledAt
+          ? new Date(createRoundDto.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+          : 'TBD';
+
+        for (const interviewer of createRoundDto.interviewers) {
+          await this.emailService.sendInterviewerAssignmentEmail(
+            interviewer.email,
+            interviewer.name,
+            '[Candidate Name]', // Placeholder as requested since rounds involve multiple candidates
+            'Node.js Developer', // Hardcoded as per prompt example, or use job.title
+            '[Fresher / X years]',
+            dateStr,
+            timeStr,
+            createRoundDto.interviewMode || 'Offline', // Default to Offline as per prompt example
+            createRoundDto.platform || 'HireHelp Office',
+            createRoundDto.instructions || ''
+          );
+        }
+      }
+
+      return savedRound;
     } catch (error) {
       console.error('Error creating round:', error);
       throw error;

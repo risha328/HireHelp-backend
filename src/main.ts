@@ -9,6 +9,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 async function bootstrap() {
+  console.log('Starting NestJS application...');
   const app = await NestFactory.create(AppModule);
 
   // Enable CORS

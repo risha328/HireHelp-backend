@@ -284,4 +284,81 @@ export class EmailService {
       // Don't throw to prevent blocking
     }
   }
+
+  async sendInterviewerAssignmentEmail(
+    interviewerEmail: string,
+    interviewerName: string,
+    candidateName: string,
+    position: string,
+    experience: string,
+    date: string,
+    time: string,
+    mode: string,
+    venueOrPlatform: string,
+    instructions: string
+  ): Promise<void> {
+    const isOffline = mode.toLowerCase() === 'offline';
+
+    // Default offline venue if none provided, or use the param
+    const venueDisplay = isOffline
+      ? (venueOrPlatform || 'HireHelp Office\nWhitefield, Bengaluru')
+      : `Platform: ${venueOrPlatform}`;
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: interviewerEmail,
+      subject: `Interview Assignment - ${position} - ${candidateName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+          <p>Hello ${interviewerName},</p>
+          
+          <p>You have been assigned a <strong>Technical Interview (${mode})</strong> for the following candidate:</p>
+          
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #2c3e50;">Candidate Details</h3>
+            <ul style="list-style-type: none; padding-left: 0;">
+              <li style="margin-bottom: 8px;">• <strong>Name:</strong> ${candidateName}</li>
+              <li style="margin-bottom: 8px;">• <strong>Position:</strong> ${position}</li>
+              <li style="margin-bottom: 8px;">• <strong>Experience:</strong> ${experience}</li>
+            </ul>
+          </div>
+
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #2c3e50;">Interview Schedule</h3>
+            <ul style="list-style-type: none; padding-left: 0;">
+              <li style="margin-bottom: 8px;">• <strong>Date:</strong> ${date}</li>
+              <li style="margin-bottom: 8px;">• <strong>Time:</strong> ${time}</li>
+              <li style="margin-bottom: 8px;">• <strong>Mode:</strong> ${mode}</li>
+              <li style="margin-bottom: 8px;">• <strong>${isOffline ? 'Venue' : 'Link/Platform'}:</strong><br>
+                ${venueDisplay.replace(/\n/g, '<br>')}
+              </li>
+            </ul>
+          </div>
+
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #2c3e50;">Instructions for Interviewer</h3>
+            <ul style="padding-left: 20px;">
+              ${instructions ? instructions.split('\n').map(i => `<li>${i}</li>`).join('') : `
+                <li>Assess technical fundamentals and problem-solving skills</li>
+                <li>Evaluate communication and approach</li>
+                <li>Provide feedback after the interview in the admin panel</li>
+              `}
+            </ul>
+          </div>
+          
+          <p>Please ensure you are available at the scheduled time.</p>
+          
+          <p>Best regards,<br>HireHelp Admin System</p>
+        </div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Interview assignment email sent to ${interviewerEmail}`);
+    } catch (error) {
+      console.error('Error sending interview assignment email:', error);
+      // We don't throw here to allow round creation to succeed even if email fails
+    }
+  }
 }

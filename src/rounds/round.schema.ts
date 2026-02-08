@@ -7,8 +7,10 @@ export enum RoundType {
   CODING = 'coding',
   CASE_STUDY = 'case_study',
   GROUP_DISCUSSION = 'group_discussion',
+  TECHNICAL = 'technical',
+  HR = 'hr',
 }
-
+// Schema for Round entity
 @Schema()
 export class MCQQuestion {
   @Prop({ required: true })
@@ -60,6 +62,21 @@ export class Round {
 
   @Prop({ default: false })
   isArchived: boolean;
+
+  @Prop({ enum: ['online', 'offline'] })
+  interviewMode?: string;
+
+  @Prop({ enum: ['one-to-one', 'panel'] })
+  interviewType?: string;
+
+  @Prop()
+  scheduledAt?: Date;
+
+  @Prop({ type: [{ name: String, email: String }] })
+  interviewers?: { name: string; email: string }[];
+
+  @Prop()
+  meetingLink?: string;
 }
 
 export const RoundSchema = SchemaFactory.createForClass(Round);
