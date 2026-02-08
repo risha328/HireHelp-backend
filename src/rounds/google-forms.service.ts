@@ -25,12 +25,10 @@ export class GoogleFormsService {
 
       return response.data.responses || [];
     } catch (error: any) {
-      // If the form is not found (404), return empty array instead of throwing
-      if (error.status === 404 || error.code === 404) {
-        console.warn(`Google Form with ID ${formId} not found or not accessible. Returning empty responses.`);
+      // Silently return empty array for not found (404) or permission denied (403) errors
+      if (error.status === 404 || error.code === 404 || error.status === 403 || error.code === 403) {
         return [];
       }
-      console.error('Error fetching Google Forms responses:', error);
       throw new Error('Failed to fetch Google Forms responses');
     }
   }

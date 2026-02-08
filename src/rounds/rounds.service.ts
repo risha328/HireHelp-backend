@@ -25,7 +25,7 @@ export class RoundsService {
     private readonly emailService: EmailService,
     private readonly googleSheetsService: GoogleSheetsService,
     private readonly googleFormsService: GoogleFormsService,
-  ) {}
+  ) { }
 
   async create(createRoundDto: CreateRoundDto): Promise<Round> {
     try {
@@ -278,19 +278,15 @@ export class RoundsService {
   }
 
   async fetchGoogleSheetData(googleSheetUrl: string): Promise<any[]> {
-    console.log('Fetching Google Sheet data for URL:', googleSheetUrl);
     // Extract spreadsheet ID from Google Sheets URL
     const sheetIdMatch = googleSheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)(?:\/|$)/);
     if (!sheetIdMatch) {
-      console.log('Invalid Google Sheets URL - no match found');
       throw new NotFoundException('Invalid Google Sheets URL');
     }
     const spreadsheetId = sheetIdMatch[1];
-    console.log('Extracted spreadsheet ID:', spreadsheetId);
 
     // Fetch all sheet data
     const sheetData = await this.googleSheetsService.getSheetData(spreadsheetId);
-    console.log('Fetched sheet data, rows:', sheetData.length);
     return sheetData;
   }
 
@@ -322,14 +318,11 @@ export class RoundsService {
     for (const round of mcqRounds) {
       try {
         if (round.googleFormLink) {
-          console.log(`Processing Google Form for round ${round._id}: ${round.googleFormLink}`);
           // Extract form ID from Google Forms URL
           const formIdMatch = round.googleFormLink.match(/\/forms\/d\/([a-zA-Z0-9-_]+)(?:\/|$)/);
           if (formIdMatch) {
             const formId = formIdMatch[1];
-            console.log(`Extracted form ID: ${formId}`);
             const formResponses = await this.googleFormsService.getFormResponses(formId);
-            console.log(`Fetched ${formResponses.length} responses from Google Forms`);
 
             // Process Google Forms responses
             for (let i = 0; i < formResponses.length; i++) {
@@ -346,7 +339,7 @@ export class RoundsService {
                     // Check if we already have this response in database
                     const existingResponse = dbResponses.find(
                       r => (r.applicationId as any)._id.toString() === (application as any)._id.toString() &&
-                           (r.roundId as any)._id.toString() === round._id.toString()
+                        (r.roundId as any)._id.toString() === round._id.toString()
                     );
 
                     if (!existingResponse) {
@@ -399,7 +392,6 @@ export class RoundsService {
           }
         }
       } catch (error) {
-        console.error(`Error fetching Google Sheets data for round ${round._id}:`, error);
         // Continue with other rounds even if one fails
       }
     }
