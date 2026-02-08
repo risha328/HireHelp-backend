@@ -255,8 +255,10 @@ export class ApplicationsService {
               dateStr,
               timeStr,
               newRoundObj.interviewMode || 'Offline',
-              newRoundObj.meetingLink || newRoundObj.platform || 'HireHelp Office\nWhitefield, Bengaluru',
-              newRoundObj.instructions || ''
+              newRoundObj.meetingLink || newRoundObj.platform || '',
+              newRoundObj.instructions || '',
+              newRoundObj.scheduling?.reportingTime,
+              newRoundObj.locationDetails
             );
             console.log('✓ Candidate interview notification email sent successfully!');
           } else {

@@ -77,6 +77,21 @@ export class Round {
 
   @Prop()
   meetingLink?: string;
+
+  @Prop({ type: Object })
+  locationDetails?: {
+    venueName: string;
+    address: string;
+    city: string;
+    landmark: string;
+  };
+
+  @Prop({ type: Object })
+  scheduling?: {
+    interviewDate: string;
+    interviewTime: string;
+    reportingTime: string;
+  };
 }
 
 export const RoundSchema = SchemaFactory.createForClass(Round);
