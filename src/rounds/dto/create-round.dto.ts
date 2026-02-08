@@ -49,4 +49,25 @@ export class CreateRoundDto {
   @ValidateNested({ each: true })
   @Type(() => MCQQuestion)
   mcqQuestions?: MCQQuestion[];
+
+  @IsOptional()
+  @IsString()
+  @IsEnum(['online', 'offline'])
+  interviewMode?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsEnum(['one-to-one', 'panel'])
+  interviewType?: string;
+
+  @IsOptional()
+  scheduledAt?: Date;
+
+  @IsOptional()
+  @IsArray()
+  interviewers?: { name: string; email: string }[];
+
+  @IsOptional()
+  @IsString()
+  meetingLink?: string;
 }
