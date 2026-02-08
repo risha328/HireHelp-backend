@@ -67,8 +67,11 @@ export class RoundsService {
             dateStr,
             timeStr,
             createRoundDto.interviewMode || 'Offline', // Default to Offline as per prompt example
-            createRoundDto.platform || 'HireHelp Office',
-            createRoundDto.instructions || ''
+            createRoundDto.platform || '',
+
+            createRoundDto.instructions || '',
+            createRoundDto.scheduling?.reportingTime,
+            createRoundDto.locationDetails
           );
         }
       }
@@ -179,8 +182,11 @@ export class RoundsService {
             dateStr,
             timeStr,
             round.interviewMode || 'Offline',
-            round.platform || 'HireHelp Office\nWhitefield, Bengaluru',
-            round.instructions || ''
+            round.platform || '',
+
+            round.instructions || '',
+            round.scheduling?.reportingTime,
+            round.locationDetails
           );
         }
       } catch (error) {

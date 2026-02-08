@@ -295,14 +295,32 @@ export class EmailService {
     time: string,
     mode: string,
     venueOrPlatform: string,
-    instructions: string
+    instructions: string,
+    reportingTime?: string,
+    locationDetails?: {
+      venueName: string;
+      address: string;
+      city: string;
+      landmark?: string;
+    }
   ): Promise<void> {
     const isOffline = mode.toLowerCase() === 'offline';
 
     // Default offline venue if none provided, or use the param
-    const venueDisplay = isOffline
-      ? (venueOrPlatform || 'HireHelp Office\nWhitefield, Bengaluru')
-      : `Platform: ${venueOrPlatform}`;
+    let venueDisplay = venueOrPlatform || 'Venue details to be shared';
+
+    if (isOffline && locationDetails) {
+      venueDisplay = `
+        <strong>Venue:</strong> ${locationDetails.venueName}<br>
+        <strong>Address:</strong> ${locationDetails.address}<br>
+        <strong>City:</strong> ${locationDetails.city}
+        ${locationDetails.landmark ? `<br><strong>Landmark:</strong> ${locationDetails.landmark}` : ''}
+      `;
+    } else if (isOffline) {
+      venueDisplay = venueOrPlatform || 'Venue details to be shared';
+    } else {
+      venueDisplay = `Platform: ${venueOrPlatform}`;
+    }
 
     const mailOptions = {
       from: process.env.SMTP_USER,
@@ -328,9 +346,10 @@ export class EmailService {
             <ul style="list-style-type: none; padding-left: 0;">
               <li style="margin-bottom: 8px;">• <strong>Date:</strong> ${date}</li>
               <li style="margin-bottom: 8px;">• <strong>Time:</strong> ${time}</li>
+              ${reportingTime ? `<li style="margin-bottom: 8px;">• <strong>Reporting Time:</strong> ${reportingTime}</li>` : ''}
               <li style="margin-bottom: 8px;">• <strong>Mode:</strong> ${mode}</li>
               <li style="margin-bottom: 8px;">• <strong>Venue:</strong><br>
-                ${venueDisplay.replace(/\n/g, '<br>')}
+                ${isOffline && locationDetails ? venueDisplay : venueDisplay.replace(/\n/g, '<br>')}
               </li>
             </ul>
           </div>
@@ -369,7 +388,14 @@ export class EmailService {
     time: string,
     mode: string,
     venueOrPlatform: string,
-    instructions: string
+    instructions: string,
+    reportingTime?: string,
+    locationDetails?: {
+      venueName: string;
+      address: string;
+      city: string;
+      landmark?: string;
+    }
   ): Promise<void> {
     const isOffline = mode.toLowerCase() === 'offline';
 
@@ -390,20 +416,32 @@ export class EmailService {
             <ul style="list-style-type: none; padding-left: 0;">
               <li style="margin-bottom: 8px;">• <strong>Date:</strong> ${date}</li>
               <li style="margin-bottom: 8px;">• <strong>Time:</strong> ${time}</li>
+              ${reportingTime ? `<li style="margin-bottom: 8px;">• <strong>Reporting Time:</strong> ${reportingTime}</li>` : ''}
               <li style="margin-bottom: 8px;">• <strong>Mode:</strong> ${mode}</li>
-              ${venueOrPlatform ? `<li style="margin-bottom: 8px;">• <strong>Meeting Link:</strong><br>
-                <a href="${venueOrPlatform}" style="color: #007bff; text-decoration: none;">${venueOrPlatform}</a>
-              </li>` : ''}
+              ${isOffline ? (locationDetails ? `
+                <li style="margin-bottom: 8px;">• <strong>Venue:</strong> ${locationDetails.venueName}</li>
+                <li style="margin-bottom: 8px;">• <strong>Address:</strong> ${locationDetails.address}</li>
+                <li style="margin-bottom: 8px;">• <strong>City:</strong> ${locationDetails.city}</li>
+                ${locationDetails.landmark ? `<li style="margin-bottom: 8px;">• <strong>Landmark:</strong> ${locationDetails.landmark}</li>` : ''}
+              ` : `
+                <li style="margin-bottom: 8px;">• <strong>Venue:</strong> ${venueOrPlatform || 'Venue details to be shared'}</li>
+              `) : (venueOrPlatform ? `
+                <li style="margin-bottom: 8px;">• <strong>Meeting Link:</strong><br>
+                  <a href="${venueOrPlatform}" style="color: #007bff; text-decoration: none;">${venueOrPlatform}</a>
+                </li>
+              ` : '')}
             </ul>
           </div>
 
           <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #2c3e50;">Instructions for Candidate</h3>
             <ul style="padding-left: 20px;">
+              ${isOffline ? '<li>Carry CV, photograph and marksheet and proper Reporting time mentioned</li>' : `
               <li>Prepare for technical questions related to fundamentals and problem-solving</li>
               <li>Ensure you have a stable internet connection if online</li>
               <li>Be ready to discuss your experience and approach</li>
-              ${isOffline ? '<li>Arrive 10 minutes early for offline interviews</li>' : '<li>Join the meeting 5 minutes early</li>'}
+              <li>Join the meeting 5 minutes early</li>
+              `}
             </ul>
           </div>
 

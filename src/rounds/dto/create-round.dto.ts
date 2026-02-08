@@ -1,7 +1,34 @@
-import { IsString, IsOptional, IsNumber, IsMongoId, IsEnum, IsUrl, IsArray, ValidateIf } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsMongoId, IsEnum, IsUrl, IsArray, ValidateIf, IsObject } from 'class-validator';
 import { ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { RoundType, MCQQuestion } from '../round.schema';
+
+export class LocationDetailsDto {
+  @IsString()
+  venueName: string;
+
+  @IsString()
+  address: string;
+
+  @IsString()
+  city: string;
+
+  @IsOptional()
+  @IsString()
+  landmark?: string;
+}
+
+export class SchedulingDto {
+  @IsString()
+  interviewDate: string;
+
+  @IsString()
+  interviewTime: string;
+
+  @IsOptional()
+  @IsString()
+  reportingTime?: string;
+}
 
 export class CreateRoundDto {
   @IsString()
@@ -70,4 +97,14 @@ export class CreateRoundDto {
   @IsOptional()
   @IsString()
   meetingLink?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LocationDetailsDto)
+  locationDetails?: LocationDetailsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SchedulingDto)
+  scheduling?: SchedulingDto;
 }
