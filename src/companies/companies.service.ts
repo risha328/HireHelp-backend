@@ -4,14 +4,14 @@ import { Model } from 'mongoose';
 import { Company, CompanyDocument } from './company.schema';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
-import { User, UserDocument } from '../users/user.schema';
+import { User, UserDocument, Role } from '../users/user.schema';
 
 @Injectable()
 export class CompaniesService {
   constructor(
     @InjectModel(Company.name) private companyModel: Model<CompanyDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-  ) {}
+  ) { }
 
   async create(createCompanyDto: CreateCompanyDto): Promise<Company> {
     try {
@@ -87,5 +87,12 @@ export class CompaniesService {
       { verificationStatus: 'rejected' },
       { new: true },
     ).exec();
+  }
+
+  async getCompanyAdmins(companyId: string): Promise<User[]> {
+    return this.userModel.find({
+      companyId: companyId,
+      role: Role.COMPANY_ADMIN
+    }).exec();
   }
 }

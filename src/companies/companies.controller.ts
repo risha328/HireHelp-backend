@@ -12,7 +12,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 @Controller('companies')
 @UseGuards(JwtAuthGuard)
 export class CompaniesController {
-  constructor(private readonly companiesService: CompaniesService) {}
+  constructor(private readonly companiesService: CompaniesService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create a new company' })
@@ -63,6 +63,13 @@ export class CompaniesController {
   @ApiResponse({ status: 200, description: 'Company deleted successfully' })
   remove(@Param('id') id: string) {
     return this.companiesService.remove(id);
+  }
+
+  @Get(':id/admins')
+  @ApiOperation({ summary: 'Get all admins for a company' })
+  @ApiResponse({ status: 200, description: 'Company admins retrieved successfully' })
+  getCompanyAdmins(@Param('id') id: string) {
+    return this.companiesService.getCompanyAdmins(id);
   }
 
   @Post('upload-logo')
