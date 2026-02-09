@@ -251,6 +251,7 @@ export class ApplicationsService {
               (application.candidateId as any).email,
               (application.candidateId as any).name,
               (application.jobId as any).title,
+              newRoundObj.name,
               '[Fresher / X years]',
               dateStr,
               timeStr,
