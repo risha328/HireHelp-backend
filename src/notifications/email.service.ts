@@ -383,6 +383,7 @@ export class EmailService {
     candidateEmail: string,
     candidateName: string,
     position: string,
+    roundName: string,
     experience: string,
     date: string,
     time: string,
@@ -402,14 +403,14 @@ export class EmailService {
     const mailOptions = {
       from: process.env.SMTP_USER,
       to: candidateEmail,
-      subject: `Interview Scheduled - ${position}`,
+      subject: `Interview Scheduled - ${position} - ${roundName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
           <p>Hello ${candidateName},</p>
 
           <p>Congratulations! You have progressed to the next stage of our hiring process for the <strong>${position}</strong> position.</p>
 
-          <p>You have been scheduled for a <strong>Technical Interview (${mode})</strong>.</p>
+          <p>You have been scheduled for a <strong>${roundName} (${mode})</strong>.</p>
 
           <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #2c3e50;">Interview Schedule</h3>
