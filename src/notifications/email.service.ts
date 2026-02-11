@@ -455,4 +455,37 @@ export class EmailService {
       // We don't throw here to allow status update to succeed even if email fails
     }
   }
+
+  async sendInvitationEmail(
+    email: string,
+    name: string,
+    role: string,
+    companyName: string,
+    tempPassword: string
+  ): Promise<void> {
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: email,
+      subject: `Invitation to join ${companyName} on HireHelp`,
+      html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+        <h2>Hello ${name},</h2>
+        
+        <p>You have been invited to join <strong>${companyName}</strong> on HireHelp as a <strong>${role}</strong>.</p>
+        
+        <p>Please contact your company administrator for further instructions on how to proceed.</p>
+        
+        <p>Best regards,<br>The HireHelp Team</p>
+      </div>
+    `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Invitation email sent to ${email}`);
+    } catch (error) {
+      console.error('Error sending invitation email:', error);
+      throw error;
+    }
+  }
 }

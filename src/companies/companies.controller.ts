@@ -5,6 +5,7 @@ import { extname } from 'path';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
+import { InviteMemberDto } from './dto/invite-member.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
@@ -70,6 +71,13 @@ export class CompaniesController {
   @ApiResponse({ status: 200, description: 'Company admins retrieved successfully' })
   getCompanyAdmins(@Param('id') id: string) {
     return this.companiesService.getCompanyAdmins(id);
+  }
+
+  @Post(':id/invite')
+  @ApiOperation({ summary: 'Invite a member to the company' })
+  @ApiResponse({ status: 201, description: 'Member invited successfully' })
+  inviteMember(@Param('id') id: string, @Body() inviteMemberDto: InviteMemberDto) {
+    return this.companiesService.inviteMember(id, inviteMemberDto.email, inviteMemberDto.name, inviteMemberDto.role);
   }
 
   @Post('upload-logo')

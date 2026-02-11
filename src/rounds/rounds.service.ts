@@ -132,7 +132,7 @@ export class RoundsService {
     ).exec();
   }
 
-  async assignCandidateToRound(roundId: string, applicationId: string, evaluatorId: string): Promise<RoundEvaluation> {
+  async assignCandidateToRound(roundId: string, applicationId: string, evaluatorId: string): Promise<RoundEvaluationDocument> {
     const round = await this.roundModel.findById(roundId).exec();
     if (!round) {
       throw new NotFoundException(`Round with ID ${roundId} not found`);
@@ -217,7 +217,7 @@ export class RoundsService {
     return savedEvaluation.populate(['roundId', 'applicationId', 'evaluatorId']);
   }
 
-  async updateEvaluationStatus(evaluationId: string, status: EvaluationStatus, notes?: string): Promise<RoundEvaluation> {
+  async updateEvaluationStatus(evaluationId: string, status: EvaluationStatus, notes?: string): Promise<RoundEvaluationDocument> {
     const evaluation = await this.roundEvaluationModel.findById(evaluationId).exec();
     if (!evaluation) {
       throw new NotFoundException(`Evaluation with ID ${evaluationId} not found`);
@@ -491,22 +491,71 @@ export class RoundsService {
   /*
   * Get evaluations by application ID
   */
-  async getEvaluationsByApplications(applicationIds: string[]): Promise<RoundEvaluation[]> {
+  /*
+  * Get evaluations by application ID
+  */
+  async getEvaluationsByApplications(applicationIds: string[]): Promise<RoundEvaluationDocument[]> {
+    // 1. Fetch existing evaluations with populated fields
     const evaluations = await this.roundEvaluationModel.find({
       applicationId: { $in: applicationIds }
-    }).exec();
+    })
+      .populate(['roundId', 'applicationId', 'evaluatorId'])  // Populate everything
+      .exec();
+
+    // 2. Self-healing: Ensure every application with a currentRound has a corresponding evaluation
+    // Fetch all applications to check their currentRound status
+    const applications = await Promise.all(
+      applicationIds.map(id => this.applicationsService.findOne(id).catch(() => null))
+    );
+
+    const validApplications = applications.filter(app => app !== null);
+    const missingEvaluations: RoundEvaluationDocument[] = [];
+
+    for (const app of validApplications) {
+      if (app.currentRound) {
+        const roundId = (app.currentRound as any)._id?.toString() || app.currentRound.toString();
+
+        // Check if evaluation exists for this app and round
+        const exists = evaluations.find(
+          e => {
+            // Handle populated applicationId and roundId
+            const eAppId = (e.applicationId as any)._id ? (e.applicationId as any)._id.toString() : e.applicationId.toString();
+            const eRoundId = (e.roundId as any)._id ? (e.roundId as any)._id.toString() : e.roundId.toString();
+
+            return eAppId === (app as any)._id.toString() && eRoundId === roundId;
+          }
+        );
+
+        if (!exists) {
+          // Missing evaluation detected! Create it.
+          try {
+            console.log(`Self-healing: Creating missing evaluation for App ${(app as any)._id}, Round ${roundId}`);
+            const companyId = (app.companyId as any)._id || app.companyId;
+
+            // Use assignCandidateToRound to create the record
+            const newEvaluation = await this.assignCandidateToRound(
+              roundId,
+              (app as any)._id.toString(),
+              companyId.toString()
+            );
+            missingEvaluations.push(newEvaluation);
+          } catch (err) {
+            console.error(`Failed to auto-create evaluation for App ${(app as any)._id}:`, err);
+          }
+        }
+      }
+    }
+
+    // Combine existing and newly created evaluations
+    const allEvaluations = [...evaluations, ...missingEvaluations];
 
     const now = new Date();
-    const updatedEvaluations: RoundEvaluation[] = [];
+    const updatedEvaluations: RoundEvaluationDocument[] = [];
 
-    // Pre-fetch rounds to minimize DB calls inside loop
-    const roundIds = [...new Set(evaluations.map(e => e.roundId))];
-    const rounds = await this.roundModel.find({ _id: { $in: roundIds } }).exec();
-    const roundsMap = new Map(rounds.map(r => [r._id.toString(), r]));
-
-    for (const evaluation of evaluations) {
+    // All evaluations are now populated, so we can access round details directly
+    for (const evaluation of allEvaluations) {
       let isUpdated = false;
-      const round = roundsMap.get(evaluation.roundId.toString());
+      const round = evaluation.roundId as any; // Cast to access properties
 
       // Check for missed interview
       if (evaluation.status === EvaluationStatus.PENDING) {
@@ -521,8 +570,6 @@ export class RoundsService {
           const dateStr = round.scheduling.interviewDate;
           const timeStr = round.scheduling.interviewTime || '09:00';
 
-          // Simple parsing assuming YYYY-MM-DD or similar standard format
-          // If it's just a date string, we might need more robust parsing depending on storage format
           scheduledDate = new Date(`${dateStr}T${timeStr}`);
 
           if (isNaN(scheduledDate.getTime())) {
@@ -542,10 +589,11 @@ export class RoundsService {
       updatedEvaluations.push(evaluation);
     }
 
+
     return updatedEvaluations;
   }
 
-  async rescheduleRound(evaluationId: string): Promise<RoundEvaluation> {
+  async rescheduleRound(evaluationId: string): Promise<RoundEvaluationDocument> {
     const evaluation = await this.roundEvaluationModel.findById(evaluationId);
     if (!evaluation) {
       throw new NotFoundException(`Evaluation with ID ${evaluationId} not found`);
@@ -557,6 +605,73 @@ export class RoundsService {
     }
 
     return evaluation;
+  }
+  async assignInterviewer(
+    evaluationId: string,
+    interviewerData: { interviewerId: string; interviewerName: string; interviewerEmail: string }
+  ): Promise<RoundEvaluationDocument> {
+    const evaluation = await this.roundEvaluationModel.findById(evaluationId).exec();
+    if (!evaluation) {
+      throw new NotFoundException(`Evaluation with ID ${evaluationId} not found`);
+    }
+
+    // Update evaluation
+    evaluation.evaluatorId = interviewerData.interviewerId as any;
+    evaluation.assignedInterviewers = [{
+      name: interviewerData.interviewerName,
+      email: interviewerData.interviewerEmail
+    }];
+
+    const updatedEvaluation = await evaluation.save();
+
+    // Fetch details for email
+    const application = await this.applicationsService.findOne(evaluation.applicationId.toString());
+    const round = await this.roundModel.findById(evaluation.roundId).exec();
+    const job = await this.jobsService.findOne((application.jobId as any)._id || application.jobId);
+
+    if (application && round && job) {
+      try {
+        const dateStr = round.scheduledAt
+          ? new Date(round.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+          : (round.scheduling?.interviewDate || 'TBD');
+
+        const timeStr = round.scheduledAt
+          ? new Date(round.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+          : (round.scheduling?.interviewTime || 'TBD');
+
+        let roundTypeStr = 'Interview';
+        if (round.type) {
+          if (round.type.toString().toLowerCase() === 'hr') {
+            roundTypeStr = 'HR Interview';
+          } else {
+            roundTypeStr = round.type.charAt(0).toUpperCase() + round.type.slice(1).replace(/_/g, ' ') + ' Interview';
+          }
+        }
+
+        // Placeholder for experience as it is not directly in Application schema (might be in resume or bio, but simplified here)
+        const experience = 'N/A';
+
+        await this.emailService.sendInterviewerAssignmentEmail(
+          interviewerData.interviewerEmail,
+          interviewerData.interviewerName,
+          (application.candidateId as any).name,
+          job.title,
+          experience,
+          dateStr,
+          timeStr,
+          round.interviewMode || 'Online',
+          round.meetingLink || round.platform || 'Link to be shared',
+          round.instructions || '',
+          roundTypeStr,
+          round.scheduling?.reportingTime,
+          round.locationDetails
+        );
+      } catch (error) {
+        console.error('Failed to send interviewer assignment email:', error);
+      }
+    }
+
+    return updatedEvaluation;
   }
 }
 
