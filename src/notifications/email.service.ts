@@ -463,19 +463,40 @@ export class EmailService {
     companyName: string,
     tempPassword: string
   ): Promise<void> {
+    const roleDisplay = role === 'COMPANY_ADMIN' ? 'Company Admin' : 'Interviewer';
+
     const mailOptions = {
       from: process.env.SMTP_USER,
       to: email,
-      subject: `Invitation to join ${companyName} on HireHelp`,
+      subject: `Welcome to HireHelp! Invitation to join ${companyName}`,
       html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
-        <h2>Hello ${name},</h2>
+        <h2 style="color: #2c3e50;">Hello ${name},</h2>
         
-        <p>You have been invited to join <strong>${companyName}</strong> on HireHelp as a <strong>${role}</strong>.</p>
+        <p>Welcome to HireHelp!</p>
         
-        <p>Please contact your company administrator for further instructions on how to proceed.</p>
+        <p>You have been added as a team member to the <strong>${companyName}</strong> account by the Company Admin.</p>
         
-        <p>Best regards,<br>The HireHelp Team</p>
+        <p>Your role: <strong>${roleDisplay}</strong></p>
+        
+        <p>You now have access to collaborate on hiring activities, including:</p>
+        
+        <ul style="padding-left: 20px;">
+          <li style="margin-bottom: 5px;">• Managing interviews</li>
+          <li style="margin-bottom: 5px;">• Reviewing candidate profiles</li>
+          <li style="margin-bottom: 5px;">• Submitting feedback</li>
+          <li style="margin-bottom: 5px;">• Tracking hiring progress</li>
+        </ul>
+        
+        <br>
+        
+        <p>If you have any questions regarding your responsibilities or system access, please reach out to your Company Admin.</p>
+        
+        <p>We look forward to your contribution to the hiring process.</p>
+        
+        <br>
+        
+        <p>Best regards,<br>HireHelp Team<br><a href="mailto:hirehelp23@gmail.com" style="color: #007bff; text-decoration: none;">hirehelp23@gmail.com</a></p>
       </div>
     `,
     };
