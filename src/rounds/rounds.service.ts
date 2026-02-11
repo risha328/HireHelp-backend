@@ -57,19 +57,28 @@ export class RoundsService {
           ? new Date(createRoundDto.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
           : 'TBD';
 
+        let roundTypeStr = 'Interview';
+        if (createRoundDto.type) {
+          if (createRoundDto.type.toString().toLowerCase() === 'hr') {
+            roundTypeStr = 'HR Interview';
+          } else {
+            roundTypeStr = createRoundDto.type.charAt(0).toUpperCase() + createRoundDto.type.slice(1).replace(/_/g, ' ') + ' Interview';
+          }
+        }
+
         for (const interviewer of createRoundDto.interviewers) {
           await this.emailService.sendInterviewerAssignmentEmail(
             interviewer.email,
             interviewer.name,
             '[Candidate Name]', // Placeholder as requested since rounds involve multiple candidates
-            'Node.js Developer', // Hardcoded as per prompt example, or use job.title
+            job.title, // Use job.title from the fetched job
             '[Fresher / X years]',
             dateStr,
             timeStr,
-            createRoundDto.interviewMode || 'Offline', // Default to Offline as per prompt example
+            createRoundDto.interviewMode || 'Offline',
             createRoundDto.platform || '',
-
             createRoundDto.instructions || '',
+            roundTypeStr,
             createRoundDto.scheduling?.reportingTime,
             createRoundDto.locationDetails
           );
@@ -162,35 +171,46 @@ export class RoundsService {
     }
 
     // If it's an interview round, send emails to assigned interviewers
-    if (round.type === RoundType.INTERVIEW && savedEvaluation.assignedInterviewers && savedEvaluation.assignedInterviewers.length > 0) {
-      try {
-        const dateStr = round.scheduledAt
-          ? new Date(round.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-          : 'TBD';
+    if (round.type === RoundType.INTERVIEW || round.type === RoundType.TECHNICAL || round.type === RoundType.HR) {
+      if (savedEvaluation.assignedInterviewers && savedEvaluation.assignedInterviewers.length > 0) {
+        try {
+          const dateStr = round.scheduledAt
+            ? new Date(round.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+            : 'TBD';
 
-        const timeStr = round.scheduledAt
-          ? new Date(round.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-          : 'TBD';
+          const timeStr = round.scheduledAt
+            ? new Date(round.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+            : 'TBD';
 
-        for (const interviewer of savedEvaluation.assignedInterviewers) {
-          await this.emailService.sendInterviewerAssignmentEmail(
-            interviewer.email,
-            interviewer.name,
-            (application.candidateId as any).name,
-            (application.jobId as any).title,
-            '[Fresher / X years]', // Placeholder since experience not stored
-            dateStr,
-            timeStr,
-            round.interviewMode || 'Offline',
-            round.platform || '',
+          let roundTypeStr = 'Interview';
+          if (round.type) {
+            if (round.type.toString().toLowerCase() === 'hr') {
+              roundTypeStr = 'HR Interview';
+            } else {
+              roundTypeStr = round.type.charAt(0).toUpperCase() + round.type.slice(1).replace(/_/g, ' ') + ' Interview';
+            }
+          }
 
-            round.instructions || '',
-            round.scheduling?.reportingTime,
-            round.locationDetails
-          );
+          for (const interviewer of savedEvaluation.assignedInterviewers) {
+            await this.emailService.sendInterviewerAssignmentEmail(
+              interviewer.email,
+              interviewer.name,
+              (application.candidateId as any).name,
+              (application.jobId as any).title,
+              '[Fresher / X years]', // Placeholder since experience not stored
+              dateStr,
+              timeStr,
+              round.interviewMode || 'Offline',
+              round.platform || '',
+              round.instructions || '',
+              roundTypeStr,
+              round.scheduling?.reportingTime,
+              round.locationDetails
+            );
+          }
+        } catch (error) {
+          console.error('Failed to send interviewer assignment email:', error);
         }
-      } catch (error) {
-        console.error('Failed to send interviewer assignment email:', error);
       }
     }
 
@@ -461,6 +481,82 @@ export class RoundsService {
       }
     }
 
+
+    /*
+    * Get evaluations by application ID
+    */
     return allResponses;
   }
+
+  /*
+  * Get evaluations by application ID
+  */
+  async getEvaluationsByApplications(applicationIds: string[]): Promise<RoundEvaluation[]> {
+    const evaluations = await this.roundEvaluationModel.find({
+      applicationId: { $in: applicationIds }
+    }).exec();
+
+    const now = new Date();
+    const updatedEvaluations: RoundEvaluation[] = [];
+
+    // Pre-fetch rounds to minimize DB calls inside loop
+    const roundIds = [...new Set(evaluations.map(e => e.roundId))];
+    const rounds = await this.roundModel.find({ _id: { $in: roundIds } }).exec();
+    const roundsMap = new Map(rounds.map(r => [r._id.toString(), r]));
+
+    for (const evaluation of evaluations) {
+      let isUpdated = false;
+      const round = roundsMap.get(evaluation.roundId.toString());
+
+      // Check for missed interview
+      if (evaluation.status === EvaluationStatus.PENDING) {
+        let scheduledDate: Date | null = null;
+
+        if (evaluation.scheduledAt) {
+          scheduledDate = new Date(evaluation.scheduledAt);
+        } else if (round && round.scheduledAt) {
+          scheduledDate = new Date(round.scheduledAt);
+        } else if (round && round.scheduling && round.scheduling.interviewDate) {
+          // Combine date and time
+          const dateStr = round.scheduling.interviewDate;
+          const timeStr = round.scheduling.interviewTime || '09:00';
+
+          // Simple parsing assuming YYYY-MM-DD or similar standard format
+          // If it's just a date string, we might need more robust parsing depending on storage format
+          scheduledDate = new Date(`${dateStr}T${timeStr}`);
+
+          if (isNaN(scheduledDate.getTime())) {
+            scheduledDate = new Date(dateStr);
+          }
+        }
+
+        if (scheduledDate && !isNaN(scheduledDate.getTime()) && scheduledDate < now) {
+          evaluation.status = EvaluationStatus.MISSED;
+          isUpdated = true;
+        }
+      }
+
+      if (isUpdated) {
+        await evaluation.save();
+      }
+      updatedEvaluations.push(evaluation);
+    }
+
+    return updatedEvaluations;
+  }
+
+  async rescheduleRound(evaluationId: string): Promise<RoundEvaluation> {
+    const evaluation = await this.roundEvaluationModel.findById(evaluationId);
+    if (!evaluation) {
+      throw new NotFoundException(`Evaluation with ID ${evaluationId} not found`);
+    }
+
+    if (evaluation.status === EvaluationStatus.MISSED) {
+      evaluation.status = EvaluationStatus.RESCHEDULING;
+      await evaluation.save();
+    }
+
+    return evaluation;
+  }
 }
+

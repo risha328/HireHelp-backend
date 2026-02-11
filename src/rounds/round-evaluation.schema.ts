@@ -7,7 +7,10 @@ export enum EvaluationStatus {
   COMPLETED = 'completed',
   PASSED = 'passed',
   FAILED = 'failed',
-  SKIPPED = 'skipped'
+  SKIPPED = 'skipped',
+  MISSED = 'missed',
+  RESCHEDULING = 'rescheduling',
+  RESCHEDULED = 'rescheduled',
 }
 
 export type RoundEvaluationDocument = RoundEvaluation & Document;
