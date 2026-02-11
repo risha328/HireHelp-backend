@@ -296,6 +296,7 @@ export class EmailService {
     mode: string,
     venueOrPlatform: string,
     instructions: string,
+    roundType: string,
     reportingTime?: string,
     locationDetails?: {
       venueName: string;
@@ -306,9 +307,8 @@ export class EmailService {
   ): Promise<void> {
     const isOffline = mode.toLowerCase() === 'offline';
 
-    // Default offline venue if none provided, or use the param
-    let venueDisplay = venueOrPlatform || 'Venue details to be shared';
-
+    // specific formatting for venue/platform
+    let venueDisplay = '';
     if (isOffline && locationDetails) {
       venueDisplay = `
         <strong>Venue:</strong> ${locationDetails.venueName}<br>
@@ -317,53 +317,47 @@ export class EmailService {
         ${locationDetails.landmark ? `<br><strong>Landmark:</strong> ${locationDetails.landmark}` : ''}
       `;
     } else if (isOffline) {
-      venueDisplay = venueOrPlatform || 'Venue details to be shared';
+      venueDisplay = `<strong>Venue:</strong> ${venueOrPlatform || 'Venue details to be shared'}`;
     } else {
-      venueDisplay = `Platform: ${venueOrPlatform}`;
+      venueDisplay = `<strong>Platform:</strong> ${venueOrPlatform || 'Online Platform'}`;
     }
 
     const mailOptions = {
       from: process.env.SMTP_USER,
       to: interviewerEmail,
-      subject: `Interview Assignment - ${position} - ${candidateName}`,
+      subject: `Interview Assignment - ${roundType} - ${candidateName}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
           <p>Hello ${interviewerName},</p>
 
-          <p>You have been assigned a <strong>Technical Interview (${mode})</strong> for the following candidate:</p>
+          <p>You have been assigned a <strong>${roundType} (${mode})</strong> for the following candidate:</p>
 
-          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #2c3e50;">Candidate Details</h3>
-            <ul style="list-style-type: none; padding-left: 0;">
-              <li style="margin-bottom: 8px;">• <strong>Name:</strong> ${candidateName}</li>
-              <li style="margin-bottom: 8px;">• <strong>Position:</strong> ${position}</li>
-              <li style="margin-bottom: 8px;">• <strong>Experience:</strong> ${experience}</li>
-            </ul>
+          <h3 style="border-bottom: 2px solid #e0e0e0; padding-bottom: 5px; margin-top: 25px; color: #2c3e50;">Candidate Details</h3>
+          <ul style="list-style-type: none; padding-left: 0; margin-top: 10px;">
+            <li style="margin-bottom: 8px;">• <strong>Name:</strong> ${candidateName}</li>
+            <li style="margin-bottom: 8px;">• <strong>Position:</strong> ${position}</li>
+            <li style="margin-bottom: 8px;">• <strong>Experience:</strong> ${experience}</li>
+          </ul>
+
+          <h3 style="border-bottom: 2px solid #e0e0e0; padding-bottom: 5px; margin-top: 25px; color: #2c3e50;">Interview Schedule</h3>
+          <ul style="list-style-type: none; padding-left: 0; margin-top: 10px;">
+            <li style="margin-bottom: 8px;">• <strong>Date:</strong> ${date}</li>
+            <li style="margin-bottom: 8px;">• <strong>Time:</strong> ${time}</li>
+            ${reportingTime ? `<li style="margin-bottom: 8px;">• <strong>Reporting Time:</strong> ${reportingTime}</li>` : ''}
+            <li style="margin-bottom: 8px;">• <strong>Mode:</strong> ${mode}</li>
+            <li style="margin-bottom: 8px;">• ${venueDisplay}</li>
+          </ul>
+
+          <h3 style="border-bottom: 2px solid #e0e0e0; padding-bottom: 5px; margin-top: 25px; color: #2c3e50;">Instructions for Interviewer</h3>
+          <div style="margin-top: 10px;">
+             ${instructions ? instructions.split('\n').map(inst => `<p style="margin: 5px 0;">${inst}</p>`).join('') : `
+            <p style="margin: 5px 0;">Assess technical fundamentals and problem-solving skills</p>
+            <p style="margin: 5px 0;">Evaluate communication and approach</p>
+            <p style="margin: 5px 0;">Provide feedback after the interview in the admin panel</p>
+             `}
           </div>
 
-          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #2c3e50;">Interview Schedule</h3>
-            <ul style="list-style-type: none; padding-left: 0;">
-              <li style="margin-bottom: 8px;">• <strong>Date:</strong> ${date}</li>
-              <li style="margin-bottom: 8px;">• <strong>Time:</strong> ${time}</li>
-              ${reportingTime ? `<li style="margin-bottom: 8px;">• <strong>Reporting Time:</strong> ${reportingTime}</li>` : ''}
-              <li style="margin-bottom: 8px;">• <strong>Mode:</strong> ${mode}</li>
-              <li style="margin-bottom: 8px;">• <strong>Venue:</strong><br>
-                ${isOffline && locationDetails ? venueDisplay : venueDisplay.replace(/\n/g, '<br>')}
-              </li>
-            </ul>
-          </div>
-
-          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #2c3e50;">Instructions for Interviewer</h3>
-            <ul style="padding-left: 20px;">
-              <li>Assess technical fundamentals and problem-solving skills</li>
-              <li>Evaluate communication and approach</li>
-              <li>Provide feedback after the interview in the admin panel</li>
-            </ul>
-          </div>
-
-          <p>Please ensure you are available at the scheduled time.</p>
+          <p style="margin-top: 30px;">Please ensure you are available at the scheduled time.</p>
 
           <p>Best regards,<br>HireHelp Admin System</p>
         </div>

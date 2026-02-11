@@ -11,7 +11,7 @@ import { EvaluationStatus } from './round-evaluation.schema';
 @ApiTags('rounds')
 @Controller('rounds')
 export class RoundsController {
-  constructor(private readonly roundsService: RoundsService) {}
+  constructor(private readonly roundsService: RoundsService) { }
 
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -149,5 +149,21 @@ export class RoundsController {
   @ApiResponse({ status: 400, description: 'Invalid Google Sheets URL' })
   fetchGoogleSheet(@Body() fetchGoogleSheetDto: FetchGoogleSheetDto) {
     return this.roundsService.fetchGoogleSheetData(fetchGoogleSheetDto.googleSheetUrl);
+  }
+
+  @Post('evaluations/by-applications')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get evaluations for multiple applications' })
+  @ApiResponse({ status: 200, description: 'Evaluations retrieved successfully' })
+  getEvaluationsByApplications(@Body() body: { applicationIds: string[] }) {
+    return this.roundsService.getEvaluationsByApplications(body.applicationIds);
+  }
+
+  @Patch('evaluation/:evaluationId/reschedule')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Reschedule a missed interview' })
+  @ApiResponse({ status: 200, description: 'Interview scheduled for rescheduling' })
+  rescheduleRound(@Param('evaluationId') evaluationId: string) {
+    return this.roundsService.rescheduleRound(evaluationId);
   }
 }
