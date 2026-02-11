@@ -5,12 +5,15 @@ import { Company, CompanyDocument } from './company.schema';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { User, UserDocument, Role } from '../users/user.schema';
+import * as bcrypt from 'bcrypt';
+import { EmailService } from '../notifications/email.service';
 
 @Injectable()
 export class CompaniesService {
   constructor(
     @InjectModel(Company.name) private companyModel: Model<CompanyDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private emailService: EmailService,
   ) { }
 
   async create(createCompanyDto: CreateCompanyDto): Promise<Company> {
@@ -92,7 +95,44 @@ export class CompaniesService {
   async getCompanyAdmins(companyId: string): Promise<User[]> {
     return this.userModel.find({
       companyId: companyId,
-      role: Role.COMPANY_ADMIN
+      role: { $in: [Role.COMPANY_ADMIN, Role.INTERVIEWER] }
     }).exec();
+  }
+
+  async inviteMember(companyId: string, email: string, name: string, role: Role): Promise<User> {
+    // 1. Check if user already exists
+    const existingUser = await this.userModel.findOne({ email });
+    if (existingUser) {
+      throw new Error('User with this email already exists');
+    }
+
+    // 2. Generate random password
+    const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+    // 3. Create user
+    const newUser = new this.userModel({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+      companyId,
+      emailVerified: true, // Auto-verify invited members
+      dateOfBirth: new Date(), // Placeholder
+    });
+
+    const savedUser = await newUser.save();
+
+    // 4. Send email
+    const company = await this.companyModel.findById(companyId);
+    await this.emailService.sendInvitationEmail(
+      email,
+      name,
+      role,
+      company ? company.name : 'your company',
+      '' // No password needed for email
+    );
+
+    return savedUser;
   }
 }

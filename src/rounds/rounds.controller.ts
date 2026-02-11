@@ -10,11 +10,21 @@ import { EvaluationStatus } from './round-evaluation.schema';
 
 @ApiTags('rounds')
 @Controller('rounds')
+@UseGuards(JwtAuthGuard)
 export class RoundsController {
   constructor(private readonly roundsService: RoundsService) { }
 
+  @Patch('evaluations/:id/assign')
+  @ApiOperation({ summary: 'Assign an interviewer to an evaluation' })
+  @ApiResponse({ status: 200, description: 'Interviewer assigned successfully' })
+  async assignInterviewer(
+    @Param('id') id: string,
+    @Body() body: { interviewerId: string; interviewerName: string; interviewerEmail: string }
+  ) {
+    return this.roundsService.assignInterviewer(id, body);
+  }
+
   @Post()
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create a new round' })
   @ApiResponse({ status: 201, description: 'Round created successfully' })
   @ApiResponse({ status: 404, description: 'Job not found' })

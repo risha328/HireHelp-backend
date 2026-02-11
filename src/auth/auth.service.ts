@@ -12,7 +12,7 @@ export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   async register(registerDto: RegisterDto): Promise<{ access_token: string; refresh_token: string; user: any }> {
     const { name, email, password, confirmPassword, dateOfBirth, role, gender } = registerDto;
@@ -62,6 +62,10 @@ export class AuthService {
     const user = await this.userModel.findOne({ email });
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.role === 'INTERVIEWER') {
+      throw new UnauthorizedException('Access denied. Interviewers cannot log in.');
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
