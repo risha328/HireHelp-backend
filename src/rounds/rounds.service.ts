@@ -608,19 +608,38 @@ export class RoundsService {
   }
   async assignInterviewer(
     evaluationId: string,
-    interviewerData: { interviewerId: string; interviewerName: string; interviewerEmail: string }
+    data: {
+      interviewerId: string;
+      interviewerName: string;
+      interviewerEmail: string;
+      scheduledAt: string;
+      interviewMode: string;
+      interviewType: string;
+      platform?: string;
+      meetingLink?: string;
+      duration?: string;
+      locationDetails?: any;
+    }
   ): Promise<RoundEvaluationDocument> {
     const evaluation = await this.roundEvaluationModel.findById(evaluationId).exec();
     if (!evaluation) {
       throw new NotFoundException(`Evaluation with ID ${evaluationId} not found`);
     }
 
-    // Update evaluation
-    evaluation.evaluatorId = interviewerData.interviewerId as any;
+    // Update evaluation with scheduling details
+    evaluation.evaluatorId = data.interviewerId as any;
     evaluation.assignedInterviewers = [{
-      name: interviewerData.interviewerName,
-      email: interviewerData.interviewerEmail
+      name: data.interviewerName,
+      email: data.interviewerEmail
     }];
+    evaluation.scheduledAt = new Date(data.scheduledAt);
+    evaluation.interviewMode = data.interviewMode;
+    evaluation.interviewType = data.interviewType;
+    evaluation.platform = data.platform;
+    evaluation.meetingLink = data.meetingLink;
+    evaluation.duration = data.duration;
+    evaluation.locationDetails = data.locationDetails;
+    evaluation.status = EvaluationStatus.SCHEDULED; // Ensure status is scheduled when scheduled
 
     const updatedEvaluation = await evaluation.save();
 
@@ -631,13 +650,8 @@ export class RoundsService {
 
     if (application && round && job) {
       try {
-        const dateStr = round.scheduledAt
-          ? new Date(round.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-          : (round.scheduling?.interviewDate || 'TBD');
-
-        const timeStr = round.scheduledAt
-          ? new Date(round.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-          : (round.scheduling?.interviewTime || 'TBD');
+        const dateStr = new Date(data.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        const timeStr = new Date(data.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
         let roundTypeStr = 'Interview';
         if (round.type) {
@@ -648,23 +662,23 @@ export class RoundsService {
           }
         }
 
-        // Placeholder for experience as it is not directly in Application schema (might be in resume or bio, but simplified here)
+        // Placeholder for experience
         const experience = 'N/A';
 
         await this.emailService.sendInterviewerAssignmentEmail(
-          interviewerData.interviewerEmail,
-          interviewerData.interviewerName,
+          data.interviewerEmail,
+          data.interviewerName,
           (application.candidateId as any).name,
           job.title,
           experience,
           dateStr,
           timeStr,
-          round.interviewMode || 'Online',
-          round.meetingLink || round.platform || 'Link to be shared',
+          data.interviewMode || 'Online',
+          data.meetingLink || data.platform || 'Link to be shared',
           round.instructions || '',
           roundTypeStr,
-          round.scheduling?.reportingTime,
-          round.locationDetails
+          data.scheduledAt ? new Date(data.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : undefined, // Reporting time same as time for now
+          data.locationDetails
         );
       } catch (error) {
         console.error('Failed to send interviewer assignment email:', error);

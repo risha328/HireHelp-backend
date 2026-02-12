@@ -3,6 +3,7 @@ import { Document, Types } from 'mongoose';
 
 export enum EvaluationStatus {
   PENDING = 'pending',
+  SCHEDULED = 'scheduled',
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
   PASSED = 'passed',
@@ -47,8 +48,31 @@ export class RoundEvaluation {
   @Prop({ default: false })
   isFinal: boolean;
 
-  @Prop([{ name: String, email: String }])
+  @Prop({ type: [{ name: String, email: String }] })
   assignedInterviewers?: { name: string; email: string }[];
+
+  @Prop()
+  interviewMode?: string;
+
+  @Prop()
+  interviewType?: string;
+
+  @Prop()
+  platform?: string;
+
+  @Prop()
+  meetingLink?: string;
+
+  @Prop()
+  duration?: string;
+
+  @Prop({ type: Object })
+  locationDetails?: {
+    venueName: string;
+    address: string;
+    city: string;
+    landmark: string;
+  };
 }
 
 export const RoundEvaluationSchema = SchemaFactory.createForClass(RoundEvaluation);
