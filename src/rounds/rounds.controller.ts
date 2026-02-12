@@ -15,11 +15,22 @@ export class RoundsController {
   constructor(private readonly roundsService: RoundsService) { }
 
   @Patch('evaluations/:id/assign')
-  @ApiOperation({ summary: 'Assign an interviewer to an evaluation' })
-  @ApiResponse({ status: 200, description: 'Interviewer assigned successfully' })
+  @ApiOperation({ summary: 'Assign an interviewer to an evaluation and schedule' })
+  @ApiResponse({ status: 200, description: 'Interviewer assigned and scheduled successfully' })
   async assignInterviewer(
     @Param('id') id: string,
-    @Body() body: { interviewerId: string; interviewerName: string; interviewerEmail: string }
+    @Body() body: {
+      interviewerId: string;
+      interviewerName: string;
+      interviewerEmail: string;
+      scheduledAt: string;
+      interviewMode: string;
+      interviewType: string;
+      platform?: string;
+      meetingLink?: string;
+      duration?: string;
+      locationDetails?: any;
+    }
   ) {
     return this.roundsService.assignInterviewer(id, body);
   }

@@ -63,10 +63,10 @@ export class Round {
   @Prop({ default: false })
   isArchived: boolean;
 
-  @Prop({ enum: ['online', 'offline'] })
+  @Prop({ required: false })
   interviewMode?: string;
 
-  @Prop({ enum: ['one-to-one', 'panel'] })
+  @Prop({ required: false })
   interviewType?: string;
 
   @Prop()
