@@ -29,6 +29,12 @@ export class Company {
   @Prop()
   location?: string;
 
+  @Prop()
+  contactEmail?: string;
+
+  @Prop()
+  contactPhone?: string;
+
   @Prop({ default: 'pending' })
   verificationStatus: string; // 'pending', 'verified', 'rejected'
 }

@@ -618,6 +618,7 @@ export class RoundsService {
       platform?: string;
       meetingLink?: string;
       duration?: string;
+      reportingTime?: string;
       locationDetails?: any;
     }
   ): Promise<RoundEvaluationDocument> {
@@ -647,41 +648,78 @@ export class RoundsService {
     const application = await this.applicationsService.findOne(evaluation.applicationId.toString());
     const round = await this.roundModel.findById(evaluation.roundId).exec();
     const job = await this.jobsService.findOne((application.jobId as any)._id || application.jobId);
+    const company = (application.companyId as any);
 
     if (application && round && job) {
       try {
         const dateStr = new Date(data.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         const timeStr = new Date(data.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-        let roundTypeStr = 'Interview';
+        // Determine interview type display name
+        let interviewTypeDisplay = 'Interview';
         if (round.type) {
           if (round.type.toString().toLowerCase() === 'hr') {
-            roundTypeStr = 'HR Interview';
+            interviewTypeDisplay = 'HR Interview';
+          } else if (round.type.toString().toLowerCase() === 'technical') {
+            interviewTypeDisplay = 'Technical Interview';
           } else {
-            roundTypeStr = round.type.charAt(0).toUpperCase() + round.type.slice(1).replace(/_/g, ' ') + ' Interview';
+            interviewTypeDisplay = round.type.charAt(0).toUpperCase() + round.type.slice(1).replace(/_/g, ' ') + ' Interview';
           }
         }
 
-        // Placeholder for experience
-        const experience = 'N/A';
+        // Calculate reporting time if not provided (15 minutes before interview time for offline)
+        let reportingTimeStr = data.reportingTime;
+        if (!reportingTimeStr && data.interviewMode === 'in-person') {
+          const scheduledDate = new Date(data.scheduledAt);
+          const reportingDate = new Date(scheduledDate.getTime() - 15 * 60000); // 15 minutes before
+          reportingTimeStr = reportingDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
 
-        await this.emailService.sendInterviewerAssignmentEmail(
-          data.interviewerEmail,
-          data.interviewerName,
-          (application.candidateId as any).name,
+        const candidateEmail = (application.candidateId as any).email;
+        const candidateName = (application.candidateId as any).name;
+        const companyName = company.name || 'HireHelp';
+        const experience = 'N/A'; // Placeholder
+
+        // Send email to CANDIDATE
+        await this.emailService.sendCandidateInterviewScheduledEmail(
+          candidateEmail,
+          candidateName,
           job.title,
-          experience,
+          interviewTypeDisplay,
           dateStr,
           timeStr,
-          data.interviewMode || 'Online',
-          data.meetingLink || data.platform || 'Link to be shared',
-          round.instructions || '',
-          roundTypeStr,
-          data.scheduledAt ? new Date(data.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : undefined, // Reporting time same as time for now
-          data.locationDetails
+          data.interviewMode,
+          data.platform,
+          data.meetingLink,
+          reportingTimeStr,
+          companyName,
+          data.locationDetails,
+          company.contactEmail || 'hirehelp23@gmail.com',
+          company.contactPhone
         );
+
+        // Send email to INTERVIEWER
+        await this.emailService.sendInterviewerScheduledEmail(
+          data.interviewerEmail,
+          data.interviewerName,
+          candidateName,
+          job.title,
+          experience,
+          interviewTypeDisplay,
+          dateStr,
+          timeStr,
+          data.interviewMode,
+          data.platform,
+          data.meetingLink,
+          reportingTimeStr,
+          companyName,
+          data.locationDetails,
+          company.contactEmail || 'hirehelp23@gmail.com'
+        );
+
+        console.log(`✅ Interview scheduled emails sent to candidate (${candidateEmail}) and interviewer (${data.interviewerEmail})`);
       } catch (error) {
-        console.error('Failed to send interviewer assignment email:', error);
+        console.error('Failed to send interview scheduled emails:', error);
       }
     }
 

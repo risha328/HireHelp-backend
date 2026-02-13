@@ -509,4 +509,273 @@ export class EmailService {
       throw error;
     }
   }
+
+  /**
+   * Send interview scheduled email to candidate
+   * Sends different templates based on interview mode (online/offline)
+   */
+  async sendCandidateInterviewScheduledEmail(
+    candidateEmail: string,
+    candidateName: string,
+    position: string,
+    interviewType: string, // 'Technical Interview', 'HR Interview', etc.
+    date: string,
+    time: string,
+    mode: string, // 'virtual' or 'in-person'
+    platform?: string, // 'Google Meet', 'Zoom', 'Microsoft Teams'
+    meetingLink?: string,
+    reportingTime?: string,
+    companyName?: string,
+    locationDetails?: {
+      venueName: string;
+      address: string;
+      city: string;
+      landmark?: string;
+    },
+    contactEmail?: string,
+    contactPhone?: string
+  ): Promise<void> {
+    const isOnline = mode.toLowerCase() === 'virtual' || mode.toLowerCase() === 'online';
+    const companyDisplay = companyName || 'HireHelp';
+    const contactInfo = contactEmail || 'hirehelp23@gmail.com';
+
+    let emailHtml = '';
+
+    if (isOnline) {
+      // Online Interview Template
+      emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+          <p>Hello ${candidateName},</p>
+
+          <p><strong>Congratulations!</strong></p>
+
+          <p>You have progressed to the next stage of our hiring process for the <strong>${position}</strong> position. We are pleased to invite you to attend the ${interviewType} as per the details below.</p>
+
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Interview Details</h3>
+          <ul style="list-style-type: none; padding-left: 0;">
+            <li style="margin-bottom: 8px;">• <strong>Mode:</strong> Online</li>
+            <li style="margin-bottom: 8px;">• <strong>Date:</strong> ${date}</li>
+            <li style="margin-bottom: 8px;">• <strong>Time:</strong> ${time}</li>
+            <li style="margin-bottom: 8px;">• <strong>Platform:</strong> ${platform || 'To be shared'}</li>
+            ${meetingLink ? `<li style="margin-bottom: 8px;">• <strong>Meeting Link:</strong> <a href="${meetingLink}" style="color: #007bff; text-decoration: none;">${meetingLink}</a></li>` : ''}
+          </ul>
+
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Instructions for the Interview</h3>
+          <ul style="padding-left: 20px;">
+            <li style="margin-bottom: 8px;">Please join the meeting 5–10 minutes before the scheduled time</li>
+            <li style="margin-bottom: 8px;">Ensure you have a stable internet connection</li>
+            <li style="margin-bottom: 8px;">Keep your camera and microphone functional</li>
+            <li style="margin-bottom: 8px;">Be prepared to share your screen if required</li>
+            <li style="margin-bottom: 8px;">Keep your updated CV accessible during the interview</li>
+          </ul>
+
+          <p style="margin-top: 25px;">If you experience any technical issues or require rescheduling, please notify us immediately.</p>
+
+          <p>We look forward to speaking with you and learning more about your experience.</p>
+
+          <p style="margin-top: 30px;">Best regards,<br>${companyDisplay} Team<br>${contactInfo}${contactPhone ? ` / ${contactPhone}` : ''}</p>
+        </div>
+      `;
+    } else {
+      // Offline Interview Template
+      emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+          <p>Hello ${candidateName},</p>
+
+          <p><strong>Congratulations!</strong></p>
+
+          <p>You have progressed to the next stage of our hiring process for the <strong>${position}</strong> position. We are pleased to invite you to attend the ${interviewType} as per the details below.</p>
+
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Interview Details</h3>
+          <ul style="list-style-type: none; padding-left: 0;">
+            <li style="margin-bottom: 8px;">• <strong>Mode:</strong> Offline</li>
+            <li style="margin-bottom: 8px;">• <strong>Date:</strong> ${date}</li>
+            <li style="margin-bottom: 8px;">• <strong>Time:</strong> ${time}</li>
+            ${reportingTime ? `<li style="margin-bottom: 8px;">• <strong>Reporting Time:</strong> ${reportingTime}</li>` : ''}
+          </ul>
+
+          ${locationDetails ? `
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Venue Details</h3>
+          <ul style="list-style-type: none; padding-left: 0;">
+            <li style="margin-bottom: 8px;">• <strong>Company Name:</strong> ${companyDisplay}</li>
+            <li style="margin-bottom: 8px;">• <strong>Venue:</strong> ${locationDetails.venueName}</li>
+            <li style="margin-bottom: 8px;">• <strong>Address:</strong> ${locationDetails.address}</li>
+            <li style="margin-bottom: 8px;">• <strong>City:</strong> ${locationDetails.city}</li>
+            ${locationDetails.landmark ? `<li style="margin-bottom: 8px;">• <strong>Landmark:</strong> ${locationDetails.landmark}</li>` : ''}
+          </ul>
+          ` : ''}
+
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Instructions for the Interview</h3>
+          <ul style="padding-left: 20px;">
+            <li style="margin-bottom: 8px;">Please arrive at the venue at the reporting time mentioned above</li>
+            <li style="margin-bottom: 8px;">Carry a printed copy of your updated CV</li>
+            <li style="margin-bottom: 8px;">Bring a valid photo ID for verification</li>
+            <li style="margin-bottom: 8px;">Dress formally for the interview</li>
+            <li style="margin-bottom: 8px;">Be prepared to discuss your experience and skills</li>
+          </ul>
+
+          <p style="margin-top: 25px;">If you need to reschedule or have any questions, please notify us immediately.</p>
+
+          <p>We look forward to meeting you in person.</p>
+
+          <p style="margin-top: 30px;">Best regards,<br>${companyDisplay} Team<br>${contactInfo}${contactPhone ? ` / ${contactPhone}` : ''}</p>
+        </div>
+      `;
+    }
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: candidateEmail,
+      subject: `Interview Scheduled - ${interviewType} - ${position}`,
+      html: emailHtml,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Candidate interview scheduled email sent to ${candidateEmail}`);
+    } catch (error) {
+      console.error('Error sending candidate interview scheduled email:', error);
+      // Don't throw to prevent blocking the scheduling process
+    }
+  }
+
+  /**
+   * Send interview scheduled email to interviewer
+   * Sends different templates based on interview mode (online/offline)
+   */
+  async sendInterviewerScheduledEmail(
+    interviewerEmail: string,
+    interviewerName: string,
+    candidateName: string,
+    position: string,
+    experience: string,
+    interviewType: string, // 'Technical Interview', 'HR Interview', etc.
+    date: string,
+    time: string,
+    mode: string, // 'virtual' or 'in-person'
+    platform?: string,
+    meetingLink?: string,
+    reportingTime?: string,
+    companyName?: string,
+    locationDetails?: {
+      venueName: string;
+      address: string;
+      city: string;
+      landmark?: string;
+    },
+    contactEmail?: string
+  ): Promise<void> {
+    const isOnline = mode.toLowerCase() === 'virtual' || mode.toLowerCase() === 'online';
+    const companyDisplay = companyName || 'HireHelp';
+    const contactInfo = contactEmail || 'hirehelp23@gmail.com';
+
+    let emailHtml = '';
+
+    if (isOnline) {
+      // Online Interview Template for Interviewer
+      emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+          <p>Hello ${interviewerName},</p>
+
+          <p>You have been assigned to conduct a ${interviewType} for the following candidate as part of our hiring process.</p>
+
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Candidate Details</h3>
+          <ul style="list-style-type: none; padding-left: 0;">
+            <li style="margin-bottom: 8px;">• <strong>Name:</strong> ${candidateName}</li>
+            <li style="margin-bottom: 8px;">• <strong>Position:</strong> ${position}</li>
+            <li style="margin-bottom: 8px;">• <strong>Experience:</strong> ${experience}</li>
+          </ul>
+
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Interview Schedule</h3>
+          <ul style="list-style-type: none; padding-left: 0;">
+            <li style="margin-bottom: 8px;">• <strong>Mode:</strong> Online</li>
+            <li style="margin-bottom: 8px;">• <strong>Date:</strong> ${date}</li>
+            <li style="margin-bottom: 8px;">• <strong>Time:</strong> ${time}</li>
+            <li style="margin-bottom: 8px;">• <strong>Platform:</strong> ${platform || 'To be shared'}</li>
+            ${meetingLink ? `<li style="margin-bottom: 8px;">• <strong>Meeting Link:</strong> <a href="${meetingLink}" style="color: #007bff; text-decoration: none;">${meetingLink}</a></li>` : ''}
+          </ul>
+
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Interviewer Instructions</h3>
+          <ul style="padding-left: 20px;">
+            <li style="margin-bottom: 8px;">Please join the meeting 5–10 minutes before the scheduled time</li>
+            <li style="margin-bottom: 8px;">Ensure your audio and video devices are functioning properly</li>
+            <li style="margin-bottom: 8px;">Assess technical knowledge, coding ability, and system understanding</li>
+            <li style="margin-bottom: 8px;">Evaluate communication skills and overall problem-solving approach</li>
+            <li style="margin-bottom: 8px;">Submit structured feedback in the admin panel immediately after the interview</li>
+          </ul>
+
+          <p style="margin-top: 25px;">In case of technical difficulties or scheduling conflicts, please inform the HR team promptly.</p>
+
+          <p>We appreciate your cooperation in ensuring a smooth interview process.</p>
+
+          <p style="margin-top: 30px;">Best regards,<br>${companyDisplay} Admin System<br>${contactInfo}</p>
+        </div>
+      `;
+    } else {
+      // Offline Interview Template for Interviewer
+      emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+          <p>Hello ${interviewerName},</p>
+
+          <p>You have been assigned to conduct a ${interviewType} for the following candidate as part of our hiring process.</p>
+
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Candidate Details</h3>
+          <ul style="list-style-type: none; padding-left: 0;">
+            <li style="margin-bottom: 8px;">• <strong>Name:</strong> ${candidateName}</li>
+            <li style="margin-bottom: 8px;">• <strong>Position:</strong> ${position}</li>
+            <li style="margin-bottom: 8px;">• <strong>Experience:</strong> ${experience}</li>
+          </ul>
+
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Interview Schedule</h3>
+          <ul style="list-style-type: none; padding-left: 0;">
+            <li style="margin-bottom: 8px;">• <strong>Mode:</strong> Offline</li>
+            <li style="margin-bottom: 8px;">• <strong>Date:</strong> ${date}</li>
+            <li style="margin-bottom: 8px;">• <strong>Time:</strong> ${time}</li>
+            ${reportingTime ? `<li style="margin-bottom: 8px;">• <strong>Reporting Time (Candidate):</strong> ${reportingTime}</li>` : ''}
+          </ul>
+
+          ${locationDetails ? `
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Venue Details</h3>
+          <ul style="list-style-type: none; padding-left: 0;">
+            <li style="margin-bottom: 8px;">• <strong>Company Name:</strong> ${companyDisplay}</li>
+            <li style="margin-bottom: 8px;">• <strong>Venue:</strong> ${locationDetails.venueName}</li>
+            <li style="margin-bottom: 8px;">• <strong>Address:</strong> ${locationDetails.address}</li>
+            <li style="margin-bottom: 8px;">• <strong>City:</strong> ${locationDetails.city}</li>
+            ${locationDetails.landmark ? `<li style="margin-bottom: 8px;">• <strong>Landmark:</strong> ${locationDetails.landmark}</li>` : ''}
+          </ul>
+          ` : ''}
+
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Interviewer Instructions</h3>
+          <ul style="padding-left: 20px;">
+            <li style="margin-bottom: 8px;">Please assess the candidate's technical fundamentals and practical knowledge</li>
+            <li style="margin-bottom: 8px;">Evaluate problem-solving skills and communication ability</li>
+            <li style="margin-bottom: 8px;">Discuss relevant project experience</li>
+            <li style="margin-bottom: 8px;">Provide structured feedback in the admin panel immediately after the interview</li>
+            <li style="margin-bottom: 8px;">Notify HR in case of candidate absence or delay</li>
+          </ul>
+
+          <p style="margin-top: 25px;">Kindly confirm your availability for the scheduled interview. If you foresee any scheduling conflict, please inform the HR team at the earliest.</p>
+
+          <p>Thank you for your support in the recruitment process.</p>
+
+          <p style="margin-top: 30px;">Best regards,<br>${companyDisplay} Admin System<br>${contactInfo}</p>
+        </div>
+      `;
+    }
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: interviewerEmail,
+      subject: `Interview Assignment - ${interviewType} - ${candidateName}`,
+      html: emailHtml,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Interviewer scheduled email sent to ${interviewerEmail}`);
+    } catch (error) {
+      console.error('Error sending interviewer scheduled email:', error);
+      // Don't throw to prevent blocking the scheduling process
+    }
+  }
 }
