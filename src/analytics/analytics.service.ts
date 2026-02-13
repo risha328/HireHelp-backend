@@ -111,9 +111,14 @@ export class AnalyticsService {
     // Score = (Job Posts × 2) + Applications + (Successful Hires × 5)
     const topCompanies = await this.companyModel.aggregate([
       {
+        $addFields: {
+          idStr: { $toString: '$_id' }
+        }
+      },
+      {
         $lookup: {
           from: 'jobs',
-          localField: '_id',
+          localField: 'idStr',
           foreignField: 'companyId',
           as: 'jobs'
         }
@@ -121,7 +126,7 @@ export class AnalyticsService {
       {
         $lookup: {
           from: 'applications',
-          localField: '_id',
+          localField: 'idStr',
           foreignField: 'companyId',
           as: 'applications'
         }
@@ -135,7 +140,7 @@ export class AnalyticsService {
               $filter: {
                 input: '$applications',
                 as: 'app',
-                cond: { $eq: ['$$app.status', 'hired'] }
+                cond: { $eq: ['$$app.status', 'HIRED'] }
               }
             }
           }
