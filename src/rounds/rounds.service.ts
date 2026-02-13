@@ -593,19 +593,6 @@ export class RoundsService {
     return updatedEvaluations;
   }
 
-  async rescheduleRound(evaluationId: string): Promise<RoundEvaluationDocument> {
-    const evaluation = await this.roundEvaluationModel.findById(evaluationId);
-    if (!evaluation) {
-      throw new NotFoundException(`Evaluation with ID ${evaluationId} not found`);
-    }
-
-    if (evaluation.status === EvaluationStatus.MISSED) {
-      evaluation.status = EvaluationStatus.RESCHEDULING;
-      await evaluation.save();
-    }
-
-    return evaluation;
-  }
   async assignInterviewer(
     evaluationId: string,
     data: {
@@ -722,6 +709,38 @@ export class RoundsService {
         console.error('Failed to send interview scheduled emails:', error);
       }
     }
+
+    return updatedEvaluation;
+  }
+
+  async rescheduleRound(
+    evaluationId: string,
+    rescheduleData: { scheduledAt: string; notes?: string }
+  ): Promise<RoundEvaluation> {
+    // Find the evaluation
+    const evaluation = await this.roundEvaluationModel.findById(evaluationId);
+
+    if (!evaluation) {
+      throw new NotFoundException(`Evaluation with ID ${evaluationId} not found`);
+    }
+
+    // Check if the evaluation is in 'missed' status
+    if (evaluation.status !== EvaluationStatus.MISSED) {
+      throw new Error(`Cannot reschedule interview. Current status is ${evaluation.status}, expected 'missed'`);
+    }
+
+    // Update the evaluation with new schedule
+    evaluation.scheduledAt = new Date(rescheduleData.scheduledAt);
+    evaluation.status = EvaluationStatus.SCHEDULED;
+
+    // Optionally add notes
+    if (rescheduleData.notes) {
+      evaluation.notes = evaluation.notes
+        ? `${evaluation.notes}\n\n[Rescheduled] ${rescheduleData.notes}`
+        : `[Rescheduled] ${rescheduleData.notes}`;
+    }
+
+    const updatedEvaluation = await evaluation.save();
 
     return updatedEvaluation;
   }
