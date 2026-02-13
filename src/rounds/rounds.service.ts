@@ -715,7 +715,16 @@ export class RoundsService {
 
   async rescheduleRound(
     evaluationId: string,
-    rescheduleData: { scheduledAt: string; notes?: string }
+    rescheduleData: {
+      scheduledAt: string;
+      notes?: string;
+      interviewMode?: string;
+      platform?: string;
+      meetingLink?: string;
+      duration?: string;
+      reportingTime?: string;
+      locationDetails?: any;
+    }
   ): Promise<RoundEvaluation> {
     // Find the evaluation
     const evaluation = await this.roundEvaluationModel.findById(evaluationId);
@@ -724,16 +733,23 @@ export class RoundsService {
       throw new NotFoundException(`Evaluation with ID ${evaluationId} not found`);
     }
 
-    // Check if the evaluation is in 'missed' status
-    if (evaluation.status !== EvaluationStatus.MISSED) {
-      throw new Error(`Cannot reschedule interview. Current status is ${evaluation.status}, expected 'missed'`);
+    // Check if the evaluation is in a state that can be rescheduled
+    const allowedStatuses = [EvaluationStatus.MISSED, EvaluationStatus.SCHEDULED];
+    if (!allowedStatuses.includes(evaluation.status)) {
+      throw new Error(`Cannot reschedule interview. Current status is ${evaluation.status}, expected 'missed' or 'scheduled'`);
     }
 
-    // Update the evaluation with new schedule
+    // Update the evaluation with new schedule details
     evaluation.scheduledAt = new Date(rescheduleData.scheduledAt);
-    evaluation.status = EvaluationStatus.SCHEDULED;
+    evaluation.status = EvaluationStatus.SCHEDULED; // Return to scheduled status
 
-    // Optionally add notes
+    if (rescheduleData.interviewMode) evaluation.interviewMode = rescheduleData.interviewMode;
+    if (rescheduleData.platform) evaluation.platform = rescheduleData.platform;
+    if (rescheduleData.meetingLink) evaluation.meetingLink = rescheduleData.meetingLink;
+    if (rescheduleData.duration) evaluation.duration = rescheduleData.duration;
+    if (rescheduleData.locationDetails) evaluation.locationDetails = rescheduleData.locationDetails;
+
+    // Add notes
     if (rescheduleData.notes) {
       evaluation.notes = evaluation.notes
         ? `${evaluation.notes}\n\n[Rescheduled] ${rescheduleData.notes}`
@@ -741,6 +757,84 @@ export class RoundsService {
     }
 
     const updatedEvaluation = await evaluation.save();
+
+    // TRIGGER EMAILS
+    try {
+      // Fetch details for email
+      const application = await this.applicationsService.findOne(evaluation.applicationId.toString());
+      const round = await this.roundModel.findById(evaluation.roundId).exec();
+      const job = await this.jobsService.findOne((application.jobId as any)._id || application.jobId);
+      const company = (application.companyId as any);
+
+      if (application && round && job) {
+        const dateStr = new Date(rescheduleData.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        const timeStr = new Date(rescheduleData.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+        // Determine interview type display name
+        let interviewTypeDisplay = 'Interview';
+        if (round.type) {
+          if (round.type.toString().toLowerCase() === 'hr') {
+            interviewTypeDisplay = 'HR Interview';
+          } else if (round.type.toString().toLowerCase() === 'technical') {
+            interviewTypeDisplay = 'Technical Interview';
+          } else {
+            interviewTypeDisplay = round.type.charAt(0).toUpperCase() + round.type.slice(1).replace(/_/g, ' ') + ' Interview';
+          }
+        }
+
+        const candidateEmail = (application.candidateId as any).email;
+        const candidateName = (application.candidateId as any).name;
+        const companyName = company.name || 'HireHelp';
+
+        // Get interviewer details from evaluation (since they were already assigned before it became "missed")
+        const interviewer = evaluation.assignedInterviewers && evaluation.assignedInterviewers.length > 0
+          ? evaluation.assignedInterviewers[0]
+          : null;
+
+        // Send email to CANDIDATE
+        await this.emailService.sendCandidateInterviewRescheduledEmail(
+          candidateEmail,
+          candidateName,
+          job.title,
+          interviewTypeDisplay,
+          dateStr,
+          timeStr,
+          rescheduleData.interviewMode || evaluation.interviewMode || 'offline',
+          rescheduleData.platform || evaluation.platform,
+          rescheduleData.meetingLink || evaluation.meetingLink,
+          rescheduleData.reportingTime,
+          companyName,
+          rescheduleData.locationDetails || evaluation.locationDetails,
+          company.contactEmail || 'hirehelp23@gmail.com',
+          company.contactPhone
+        );
+
+        // Send email to INTERVIEWER if exists
+        if (interviewer) {
+          await this.emailService.sendInterviewerRescheduledEmail(
+            interviewer.email,
+            interviewer.name,
+            candidateName,
+            job.title,
+            interviewTypeDisplay,
+            dateStr,
+            timeStr,
+            rescheduleData.interviewMode || evaluation.interviewMode || 'offline',
+            rescheduleData.platform || evaluation.platform,
+            rescheduleData.meetingLink || evaluation.meetingLink,
+            rescheduleData.reportingTime,
+            companyName,
+            rescheduleData.locationDetails || evaluation.locationDetails,
+            company.contactEmail || 'hirehelp23@gmail.com'
+          );
+        }
+
+        console.log(`✅ Reschedule emails sent to candidate and interviewer`);
+      }
+    } catch (emailError) {
+      console.error('Failed to send reschedule emails:', emailError);
+      // Non-blocking
+    }
 
     return updatedEvaluation;
   }

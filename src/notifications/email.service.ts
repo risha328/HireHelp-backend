@@ -778,4 +778,184 @@ export class EmailService {
       // Don't throw to prevent blocking the scheduling process
     }
   }
+
+  /**
+   * Send interview rescheduled email to candidate
+   */
+  async sendCandidateInterviewRescheduledEmail(
+    candidateEmail: string,
+    candidateName: string,
+    position: string,
+    interviewType: string,
+    date: string,
+    time: string,
+    mode: string,
+    platform?: string,
+    meetingLink?: string,
+    reportingTime?: string,
+    companyName?: string,
+    locationDetails?: {
+      venueName: string;
+      address: string;
+      city: string;
+      landmark?: string;
+    },
+    contactEmail?: string,
+    contactPhone?: string
+  ): Promise<void> {
+    const isOnline = mode.toLowerCase() === 'virtual' || mode.toLowerCase() === 'online';
+    const companyDisplay = companyName || 'HireHelp';
+    const contactInfo = contactEmail || 'hirehelp23@gmail.com';
+
+    let emailHtml = '';
+
+    if (isOnline) {
+      emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+          <p>Hello ${candidateName},</p>
+          <p><strong>Your interview has been rescheduled.</strong></p>
+          <p>We are writing to inform you that your ${interviewType} for the <strong>${position}</strong> position has been rescheduled to a new time. Please see the updated details below.</p>
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Updated Interview Details</h3>
+          <ul style="list-style-type: none; padding-left: 0;">
+            <li style="margin-bottom: 8px;">• <strong>Mode:</strong> Online</li>
+            <li style="margin-bottom: 8px;">• <strong>New Date:</strong> ${date}</li>
+            <li style="margin-bottom: 8px;">• <strong>New Time:</strong> ${time}</li>
+            <li style="margin-bottom: 8px;">• <strong>Platform:</strong> ${platform || 'To be shared'}</li>
+            ${meetingLink ? `<li style="margin-bottom: 8px;">• <strong>Meeting Link:</strong> <a href="${meetingLink}" style="color: #007bff; text-decoration: none;">${meetingLink}</a></li>` : ''}
+          </ul>
+          <p style="margin-top: 25px;">If you have any questions, please notify us immediately.</p>
+          <p>We look forward to speaking with you.</p>
+          <p style="margin-top: 30px;">Best regards,<br>${companyDisplay} Team<br>${contactInfo}${contactPhone ? ` / ${contactPhone}` : ''}</p>
+        </div>
+      `;
+    } else {
+      emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+          <p>Hello ${candidateName},</p>
+          <p><strong>Your interview has been rescheduled.</strong></p>
+          <p>We are writing to inform you that your ${interviewType} for the <strong>${position}</strong> position has been rescheduled. Please see the updated venue and time details below.</p>
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Updated Interview Details</h3>
+          <ul style="list-style-type: none; padding-left: 0;">
+            <li style="margin-bottom: 8px;">• <strong>Mode:</strong> Offline</li>
+            <li style="margin-bottom: 8px;">• <strong>New Date:</strong> ${date}</li>
+            <li style="margin-bottom: 8px;">• <strong>New Time:</strong> ${time}</li>
+            ${reportingTime ? `<li style="margin-bottom: 8px;">• <strong>Updated Reporting Time:</strong> ${reportingTime}</li>` : ''}
+          </ul>
+          ${locationDetails ? `
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Venue Details</h3>
+          <ul style="list-style-type: none; padding-left: 0;">
+            <li style="margin-bottom: 8px;">• <strong>Venue:</strong> ${locationDetails.venueName}</li>
+            <li style="margin-bottom: 8px;">• <strong>Address:</strong> ${locationDetails.address}</li>
+            <li style="margin-bottom: 8px;">• <strong>City:</strong> ${locationDetails.city}</li>
+            ${locationDetails.landmark ? `<li style="margin-bottom: 8px;">• <strong>Landmark:</strong> ${locationDetails.landmark}</li>` : ''}
+          </ul>
+          ` : ''}
+          <p style="margin-top: 25px;">If you need to reschedule or have any questions, please notify us immediately.</p>
+          <p>We look forward to meeting you.</p>
+          <p style="margin-top: 30px;">Best regards,<br>${companyDisplay} Team<br>${contactInfo}${contactPhone ? ` / ${contactPhone}` : ''}</p>
+        </div>
+      `;
+    }
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: candidateEmail,
+      subject: `RESCHEDULED: Interview for ${position}`,
+      html: emailHtml,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Candidate interview rescheduled email sent to ${candidateEmail}`);
+    } catch (error) {
+      console.error('Error sending candidate interview rescheduled email:', error);
+    }
+  }
+
+  /**
+   * Send interview rescheduled email to interviewer
+   */
+  async sendInterviewerRescheduledEmail(
+    interviewerEmail: string,
+    interviewerName: string,
+    candidateName: string,
+    position: string,
+    interviewType: string,
+    date: string,
+    time: string,
+    mode: string,
+    platform?: string,
+    meetingLink?: string,
+    reportingTime?: string,
+    companyName?: string,
+    locationDetails?: {
+      venueName: string;
+      address: string;
+      city: string;
+      landmark?: string;
+    },
+    contactEmail?: string
+  ): Promise<void> {
+    const isOnline = mode.toLowerCase() === 'virtual' || mode.toLowerCase() === 'online';
+    const companyDisplay = companyName || 'HireHelp';
+    const contactInfo = contactEmail || 'hirehelp23@gmail.com';
+
+    let emailHtml = '';
+
+    if (isOnline) {
+      emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+          <p>Hello ${interviewerName},</p>
+          <p><strong>Interview Rescheduled Notification</strong></p>
+          <p>The ${interviewType} for candidate <strong>${candidateName}</strong> (${position}) has been rescheduled. Please update your calendar with the new time below.</p>
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">New Schedule</h3>
+          <ul style="list-style-type: none; padding-left: 0;">
+            <li style="margin-bottom: 8px;">• <strong>Mode:</strong> Online</li>
+            <li style="margin-bottom: 8px;">• <strong>New Date:</strong> ${date}</li>
+            <li style="margin-bottom: 8px;">• <strong>New Time:</strong> ${time}</li>
+            <li style="margin-bottom: 8px;">• <strong>Platform:</strong> ${platform || 'To be shared'}</li>
+            ${meetingLink ? `<li style="margin-bottom: 8px;">• <strong>Meeting Link:</strong> <a href="${meetingLink}" style="color: #007bff; text-decoration: none;">${meetingLink}</a></li>` : ''}
+          </ul>
+          <p style="margin-top: 30px;">Best regards,<br>${companyDisplay} Admin System<br>${contactInfo}</p>
+        </div>
+      `;
+    } else {
+      emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+          <p>Hello ${interviewerName},</p>
+          <p><strong>Interview Rescheduled Notification</strong></p>
+          <p>The ${interviewType} for candidate <strong>${candidateName}</strong> (${position}) has been rescheduled. Please see the new time and venue details below.</p>
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">New Schedule</h3>
+          <ul style="list-style-type: none; padding-left: 0;">
+            <li style="margin-bottom: 8px;">• <strong>Mode:</strong> Offline</li>
+            <li style="margin-bottom: 8px;">• <strong>New Date:</strong> ${date}</li>
+            <li style="margin-bottom: 8px;">• <strong>New Time:</strong> ${time}</li>
+          </ul>
+          ${locationDetails ? `
+          <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Venue Details</h3>
+          <ul style="list-style-type: none; padding-left: 0;">
+            <li style="margin-bottom: 8px;">• <strong>Venue:</strong> ${locationDetails.venueName}</li>
+            <li style="margin-bottom: 8px;">• <strong>Address:</strong> ${locationDetails.address}</li>
+            <li style="margin-bottom: 8px;">• <strong>City:</strong> ${locationDetails.city}</li>
+          </ul>
+          ` : ''}
+          <p style="margin-top: 30px;">Best regards,<br>${companyDisplay} Admin System<br>${contactInfo}</p>
+        </div>
+      `;
+    }
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: interviewerEmail,
+      subject: `RESCHEDULED: Interview assignment - ${candidateName}`,
+      html: emailHtml,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Interviewer rescheduled email sent to ${interviewerEmail}`);
+    } catch (error) {
+      console.error('Error sending interviewer rescheduled email:', error);
+    }
+  }
 }
