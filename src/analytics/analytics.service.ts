@@ -11,7 +11,7 @@ export class AnalyticsService {
     @InjectModel(Company.name) private companyModel: Model<CompanyDocument>,
     @InjectModel(Job.name) private jobModel: Model<JobDocument>,
     @InjectModel(Application.name) private applicationModel: Model<ApplicationDocument>,
-  ) {}
+  ) { }
 
   async getCompanyGrowth() {
     // Get company growth data over time (monthly)
