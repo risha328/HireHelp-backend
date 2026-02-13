@@ -184,7 +184,19 @@ export class RoundsController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Reschedule a missed interview' })
   @ApiResponse({ status: 200, description: 'Interview scheduled for rescheduling' })
-  rescheduleRound(@Param('evaluationId') evaluationId: string) {
-    return this.roundsService.rescheduleRound(evaluationId);
+  rescheduleRound(
+    @Param('evaluationId') evaluationId: string,
+    @Body() rescheduleData: {
+      scheduledAt: string;
+      notes?: string;
+      interviewMode?: string;
+      platform?: string;
+      meetingLink?: string;
+      duration?: string;
+      reportingTime?: string;
+      locationDetails?: any;
+    }
+  ) {
+    return this.roundsService.rescheduleRound(evaluationId, rescheduleData);
   }
 }
