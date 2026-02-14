@@ -17,6 +17,9 @@ export enum Gender {
 
 @Schema({ timestamps: true })
 export class User {
+  @Prop()
+  prefix?: string;
+
   @Prop({ required: true })
   name: string;
 
