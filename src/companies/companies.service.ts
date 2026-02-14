@@ -21,10 +21,38 @@ export class CompaniesService {
       const createdCompany = new this.companyModel(createCompanyDto);
       const savedCompany = await createdCompany.save();
 
-      // Update the user's companyId
-      await this.userModel.findByIdAndUpdate(createCompanyDto.ownerId, {
-        companyId: savedCompany._id.toString(),
-      });
+      // Update the user's companyId and role
+      console.log(`Updating user role and companyId for owner: ${createCompanyDto.ownerId}`);
+      let user = await this.userModel.findByIdAndUpdate(
+        createCompanyDto.ownerId,
+        {
+          companyId: savedCompany._id.toString(),
+          role: Role.COMPANY_ADMIN,
+        },
+        { new: true }
+      ).exec();
+
+      // If user not found by findByIdAndUpdate, try findById as fallback to at least get the user info
+      if (!user) {
+        console.warn(`User not updated via findByIdAndUpdate, trying findById for owner: ${createCompanyDto.ownerId}`);
+        user = await this.userModel.findById(createCompanyDto.ownerId).exec();
+      }
+
+      // Send registration received email
+      if (user && user.email) {
+        console.log(`[EMAIL_TRIGGER] Calling sendCompanyRegistrationReceivedEmail for: ${user.email}`);
+        await this.emailService.sendCompanyRegistrationReceivedEmail(
+          user.email,
+          user.name,
+          savedCompany.name
+        );
+      } else {
+        console.error('CRITICAL: Cannot send company registration received email. User or email missing!', {
+          ownerId: createCompanyDto.ownerId,
+          userFound: !!user,
+          emailFound: user ? !!user.email : false
+        });
+      }
 
       return savedCompany;
     } catch (error) {
@@ -77,11 +105,53 @@ export class CompaniesService {
   }
 
   async verifyCompany(id: string): Promise<Company | null> {
-    return this.companyModel.findByIdAndUpdate(
+    const company = await this.companyModel.findByIdAndUpdate(
       id,
       { verificationStatus: 'verified' },
       { new: true },
     ).exec();
+
+    if (company) {
+      // Find all company admins for this company to notify them
+      const admins = await this.userModel.find({
+        companyId: id,
+        role: Role.COMPANY_ADMIN
+      }).exec();
+
+      // Track emails already sent to avoid duplicates
+      const sentEmails = new Set<string>();
+
+      console.log(`Found ${admins.length} company admins to notify for company ${id}`);
+      for (const admin of admins) {
+        if (admin.email && !sentEmails.has(admin.email.toLowerCase())) {
+          console.log(`Sending verification email to admin: ${admin.email}`);
+          await this.emailService.sendCompanyVerificationEmail(
+            admin.email,
+            admin.name,
+            company.name
+          );
+          sentEmails.add(admin.email.toLowerCase());
+        }
+      }
+
+      // Also ensure the owner gets notified if they aren't in the admin list or have a different role
+      if (company.ownerId) {
+        const owner = await this.userModel.findById(company.ownerId).exec();
+        if (owner && owner.email && !sentEmails.has(owner.email.toLowerCase())) {
+          console.log(`Sending verification email to owner separately: ${owner.email}`);
+          await this.emailService.sendCompanyVerificationEmail(
+            owner.email,
+            owner.name,
+            company.name
+          );
+          sentEmails.add(owner.email.toLowerCase());
+        }
+      }
+    } else {
+      console.warn(`Company with ID ${id} not found for verification email`);
+    }
+
+    return company;
   }
 
   async rejectCompany(id: string): Promise<Company | null> {

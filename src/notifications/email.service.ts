@@ -1120,4 +1120,114 @@ export class EmailService {
       console.error('Error sending super admin welcome email:', error);
     }
   }
+  async sendCompanyRegistrationReceivedEmail(adminEmail: string, adminName: string, companyName: string): Promise<void> {
+    const trimmedEmail = adminEmail.trim();
+    console.log(`[EMAIL_DEBUG] Preparing registration received email for: ${trimmedEmail}`);
+
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        ${this.getEmailHeader()}
+        <div style="padding: 32px 24px;">
+          <p style="font-size: 16px;">Dear <strong>${adminName}</strong>,</p>
+          
+          <p style="font-size: 16px;">Thank you for registering your company, <strong>${companyName}</strong>, with HireHelp!</p>
+          
+          <p style="font-size: 16px;">We have successfully received your company registration details. Your account is currently under review and pending verification by our team.</p>
+          
+          <div style="background-color: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border: 1px solid #bae6fd;">
+            <h3 style="margin-top: 0; color: #0369a1; font-size: 18px;">What happens next:</h3>
+            <ul style="padding-left: 20px; font-size: 15px; color: #334155;">
+              <li style="margin-bottom: 8px;">Our team will carefully review the submitted company information</li>
+              <li style="margin-bottom: 8px;">The verification process ensures authenticity and platform security</li>
+              <li style="margin-bottom: 8px;">Once approved, you will receive a confirmation email</li>
+              <li style="margin-bottom: 0;">After verification, you will be able to post jobs and manage recruitment activities</li>
+            </ul>
+          </div>
+          
+          <p style="font-size: 16px;">Please note that this review process is part of our commitment to maintaining a trusted and professional hiring environment.</p>
+          <p style="font-size: 16px;">If any additional information is required, our team will contact you directly.</p>
+          
+          <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+            <p style="margin: 0; font-size: 16px; color: #64748b;">Best regards,</p>
+            <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: bold; color: #0284c7;">HireHelp Team</p>
+          </div>
+        </div>
+        <div style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8;">
+          © ${new Date().getFullYear()} HireHelp. All rights reserved.
+        </div>
+      </div>
+    `;
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: trimmedEmail,
+      subject: `Company Registration Received - ${companyName}`,
+      html: emailHtml,
+      attachments: this.getCommonAttachments()
+    };
+
+    try {
+      console.log(`[SMTP] Attempting to send registration email to ${trimmedEmail} via ${process.env.SMTP_HOST || 'smtp.gmail.com'}`);
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log(`[SMTP_SUCCESS] Registration email sent. MessageId: ${info.messageId}`);
+    } catch (error) {
+      console.error('[SMTP_ERROR] CRITICAL failure sending registration email:', error);
+    }
+  }
+
+  async sendCompanyVerificationEmail(adminEmail: string, adminName: string, companyName: string): Promise<void> {
+    const trimmedEmail = adminEmail.trim();
+    console.log(`[EMAIL_DEBUG] Preparing verification email for: ${trimmedEmail}`);
+
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        ${this.getEmailHeader()}
+        <div style="padding: 32px 24px;">
+          <p style="font-size: 16px;">Dear <strong>${adminName}</strong>,</p>
+          
+          <p style="font-size: 16px;">Great news! Your company, <strong>${companyName}</strong>, has been successfully verified and approved by the HireHelp team.</p>
+          
+          <p style="font-size: 16px;">Your organization is now fully activated and ready to use all platform features.</p>
+          
+          <div style="background-color: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border: 1px solid #bae6fd;">
+            <h3 style="margin-top: 0; color: #0369a1; font-size: 18px;">You can now:</h3>
+            <ul style="padding-left: 20px; font-size: 15px; color: #334155;">
+              <li style="margin-bottom: 8px;">Post and manage job openings</li>
+              <li style="margin-bottom: 8px;">Create interview rounds (Technical, HR, etc.)</li>
+              <li style="margin-bottom: 8px;">Schedule interviews and assign interviewers</li>
+              <li style="margin-bottom: 8px;">Invite team members to collaborate</li>
+              <li style="margin-bottom: 0;">Track applications through your dashboard</li>
+            </ul>
+          </div>
+          
+          <p style="font-size: 16px;">We’re excited to have <strong>${companyName}</strong> as a verified partner on HireHelp.</p>
+          <p style="font-size: 16px;">If you need any help getting started, our support team is available at <a href="mailto:hirehelp23@gmail.com" style="color: #0284c7; text-decoration: none; font-weight: bold;">hirehelp23@gmail.com</a>.</p>
+          
+          <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+            <p style="margin: 0; font-size: 16px; color: #64748b;">Welcome aboard,</p>
+            <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: bold; color: #0284c7;">HireHelp Team</p>
+          </div>
+        </div>
+        <div style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8;">
+          © ${new Date().getFullYear()} HireHelp. All rights reserved.
+        </div>
+      </div>
+    `;
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: trimmedEmail,
+      subject: `Success! ${companyName} has been verified on HireHelp`,
+      html: emailHtml,
+      attachments: this.getCommonAttachments()
+    };
+
+    try {
+      console.log(`[SMTP] Attempting to send verification email to ${trimmedEmail}`);
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log(`[SMTP_SUCCESS] Verification email sent. MessageId: ${info.messageId}`);
+    } catch (error) {
+      console.error('[SMTP_ERROR] CRITICAL failure sending verification email:', error);
+    }
+  }
 }
