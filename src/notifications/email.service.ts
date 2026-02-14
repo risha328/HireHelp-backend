@@ -95,6 +95,7 @@ export class EmailService {
       subject: `Congratulations! You've been hired for ${jobTitle}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          ${this.getEmailHeader()}
           <h2 style="color: #333;">Congratulations ${candidateName}!</h2>
           <p>We are thrilled to inform you that you've been selected for the position of <strong>${jobTitle}</strong> at <strong>${companyName}</strong>.</p>
           <p>The hiring team will be in touch with you soon to discuss the next steps, including your offer details.</p>
@@ -102,6 +103,7 @@ export class EmailService {
           <p>Best regards,<br>The HireHelp Team</p>
         </div>
       `,
+      attachments: this.getCommonAttachments()
     };
 
     try {
@@ -113,6 +115,34 @@ export class EmailService {
     }
   }
 
+  async sendHoldEmail(candidateEmail: string, candidateName: string, jobTitle: string, companyName: string): Promise<void> {
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: candidateEmail,
+      subject: `Update on your application for ${jobTitle}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          ${this.getEmailHeader()}
+          <h2 style="color: #333;">Application Update</h2>
+          <p>Dear ${candidateName},</p>
+          <p>Thank you for interviewing with us for the position of <strong>${jobTitle}</strong> at <strong>${companyName}</strong>.</p>
+          <p>We wanted to let you know that we've placed your application on <strong>hold</strong> for the moment as we continue to evaluate other candidates. This doesn't mean you're no longer in consideration; rather, we need a bit more time before making a final decision.</p>
+          <p>We will get back to you with a definitive update as soon as possible.</p>
+          <p>Best regards,<br>The HireHelp Team</p>
+        </div>
+      `,
+      attachments: this.getCommonAttachments()
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Hold email sent to ${candidateEmail}`);
+    } catch (error) {
+      console.error('Error sending hold email:', error);
+      throw error;
+    }
+  }
+
   async sendRejectionFromUnderReviewEmail(candidateEmail: string, candidateName: string, jobTitle: string, companyName: string): Promise<void> {
     const mailOptions = {
       from: process.env.SMTP_USER,
@@ -120,6 +150,7 @@ export class EmailService {
       subject: `Application Update for ${jobTitle}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          ${this.getEmailHeader()}
           <p>Hello ${candidateName},</p>
           <p>Thank you for applying for the ${jobTitle} position at ${companyName}.</p>
           <p>After careful review, we will not be moving forward with your application at this time.</p>
@@ -127,6 +158,7 @@ export class EmailService {
           <p>Best regards,<br>Hiring Team<br>${companyName}<br>(via HireHelp)</p>
         </div>
       `,
+      attachments: this.getCommonAttachments()
     };
 
     try {
@@ -145,6 +177,7 @@ export class EmailService {
       subject: `Application Update for ${jobTitle}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          ${this.getEmailHeader()}
           <p>Hello ${candidateName},</p>
           <p>Thank you for taking the time to interview with us for the ${jobTitle} position at ${companyName}. We truly appreciate the effort you put into the interview process and the opportunity to learn more about your skills and experience.</p>
           <p>After careful consideration, we regret to inform you that we will not be moving forward with your application at this stage. This was a difficult decision due to the high quality of candidates we interviewed.</p>
@@ -152,6 +185,7 @@ export class EmailService {
           <p>Warm regards,<br>Hiring Team<br>${companyName}<br>(via HireHelp)</p>
         </div>
       `,
+      attachments: this.getCommonAttachments()
     };
 
     try {
@@ -170,6 +204,7 @@ export class EmailService {
       subject: `MCQ Assessment for ${jobTitle} - ${roundName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          ${this.getEmailHeader()}
           <h2 style="color: #333;">Assessment Invitation</h2>
           <p>Dear ${candidateName},</p>
           <p>Congratulations! You've progressed to the next stage of our hiring process for the <strong>${jobTitle}</strong> position at <strong>${companyName}</strong>.</p>
@@ -183,6 +218,7 @@ export class EmailService {
           <p>Best regards,<br>The Hiring Team<br>${companyName}<br>(via HireHelp)</p>
         </div>
       `,
+      attachments: this.getCommonAttachments()
     };
 
     try {
@@ -201,6 +237,7 @@ export class EmailService {
       subject: `Congratulations! You've Advanced to the Next Round - ${jobTitle}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          ${this.getEmailHeader()}
           <h2 style="color: #333;">Congratulations!</h2>
           <p>Dear ${candidateName},</p>
           <p>Great news! You've successfully passed the previous round and have been selected to move forward in our hiring process for the <strong>${jobTitle}</strong> position at <strong>${companyName}</strong>.</p>
@@ -210,6 +247,7 @@ export class EmailService {
           <p>Best regards,<br>The Hiring Team<br>${companyName}<br>(via HireHelp)</p>
         </div>
       `,
+      attachments: this.getCommonAttachments()
     };
 
     try {
@@ -228,6 +266,7 @@ export class EmailService {
       subject: `Coding Test Invitation - ${jobTitle}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          ${this.getEmailHeader()}
           <p>Hi ${candidateName},</p>
           
           <p><strong>Congratulations 🎉</strong></p>
@@ -255,6 +294,7 @@ export class EmailService {
           <p>Regards,<br>${companyName} Hiring Team</p>
         </div>
       `,
+      attachments: this.getCommonAttachments()
     };
 
     console.log('📧 Attempting to send coding test email...');
@@ -286,6 +326,7 @@ export class EmailService {
       subject: `Update on Your Application – ${companyName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          ${this.getEmailHeader()}
           <p>Hi ${candidateName},</p>
           <p>Thank you for taking the time to complete the MCQ assessment for the <strong>${jobTitle}</strong> role.</p>
           <p>After careful evaluation, we regret to inform you that you have not been shortlisted for the next round at this time.</p>
@@ -296,6 +337,7 @@ export class EmailService {
           <p>${companyName} Hiring Team</p>
         </div>
       `,
+      attachments: this.getCommonAttachments()
     };
 
     try {

@@ -9,6 +9,7 @@ export enum ApplicationStatus {
   SHORTLISTED = 'SHORTLISTED',
   HIRED = 'HIRED',
   REJECTED = 'REJECTED',
+  HOLD = 'HOLD',
 }
 
 @Schema({ timestamps: true })

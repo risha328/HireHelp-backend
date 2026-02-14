@@ -39,6 +39,9 @@ export class RoundEvaluation {
   @Prop()
   feedback?: string;
 
+  @Prop({ enum: ['hire', 'hold', 'reject'] })
+  recommendation?: string;
+
   @Prop({ type: Date })
   scheduledAt?: Date;
 
