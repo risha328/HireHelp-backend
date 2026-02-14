@@ -217,20 +217,44 @@ export class RoundsService {
     return savedEvaluation.populate(['roundId', 'applicationId', 'evaluatorId']);
   }
 
-  async updateEvaluationStatus(evaluationId: string, status: EvaluationStatus, notes?: string): Promise<RoundEvaluationDocument> {
+  async updateEvaluationStatus(
+    evaluationId: string,
+    status: EvaluationStatus,
+    notes?: string,
+    feedback?: string,
+    score?: number,
+    recommendation?: 'hire' | 'hold' | 'reject'
+  ): Promise<RoundEvaluationDocument> {
     const evaluation = await this.roundEvaluationModel.findById(evaluationId).exec();
     if (!evaluation) {
       throw new NotFoundException(`Evaluation with ID ${evaluationId} not found`);
     }
 
     evaluation.status = status;
-    evaluation.notes = notes;
+    if (notes) evaluation.notes = notes;
+    if (feedback) evaluation.feedback = feedback;
+    if (score !== undefined) evaluation.score = score;
+    if (recommendation) evaluation.recommendation = recommendation;
 
     if (status === EvaluationStatus.COMPLETED || status === EvaluationStatus.PASSED || status === EvaluationStatus.FAILED) {
       evaluation.completedAt = new Date();
     }
 
     const updatedEvaluation = await evaluation.save();
+
+    // Map recommendation to ApplicationStatus and update application
+    if (recommendation) {
+      const statusMap: Record<string, string> = {
+        'hire': 'HIRED',
+        'hold': 'HOLD',
+        'reject': 'REJECTED'
+      };
+
+      const appStatus = statusMap[recommendation];
+      if (appStatus) {
+        await this.applicationsService.updateStatus(evaluation.applicationId.toString(), appStatus);
+      }
+    }
 
     // If passed, assign to next round
     if (status === EvaluationStatus.PASSED) {

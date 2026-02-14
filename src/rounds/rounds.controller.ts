@@ -114,9 +114,9 @@ export class RoundsController {
   @ApiResponse({ status: 200, description: 'Evaluation status updated successfully' })
   updateEvaluationStatus(
     @Param('evaluationId') evaluationId: string,
-    @Body() body: { status: EvaluationStatus; notes?: string },
+    @Body() body: { status: EvaluationStatus; notes?: string; feedback?: string; score?: number; recommendation?: 'hire' | 'hold' | 'reject' },
   ) {
-    return this.roundsService.updateEvaluationStatus(evaluationId, body.status, body.notes);
+    return this.roundsService.updateEvaluationStatus(evaluationId, body.status, body.notes, body.feedback, body.score, body.recommendation);
   }
 
   @Get(':roundId/evaluations')

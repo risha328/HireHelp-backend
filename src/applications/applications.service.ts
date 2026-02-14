@@ -318,7 +318,7 @@ export class ApplicationsService {
         console.error('Failed to send shortlist email:', error);
         // Don't throw error to avoid breaking the status update
       }
-    } else if (currentApplication.status === ApplicationStatus.SHORTLISTED && status === ApplicationStatus.HIRED) {
+    } else if (status === ApplicationStatus.HIRED) {
       try {
         await this.emailService.sendHireEmail(
           (application.candidateId as any).email,
@@ -328,6 +328,18 @@ export class ApplicationsService {
         );
       } catch (error) {
         console.error('Failed to send hire email:', error);
+        // Don't throw error to avoid breaking the status update
+      }
+    } else if (status === ApplicationStatus.HOLD) {
+      try {
+        await this.emailService.sendHoldEmail(
+          (application.candidateId as any).email,
+          (application.candidateId as any).name,
+          (application.jobId as any).title,
+          (application.companyId as any).name,
+        );
+      } catch (error) {
+        console.error('Failed to send hold email:', error);
         // Don't throw error to avoid breaking the status update
       }
     } else if (status === ApplicationStatus.REJECTED) {
@@ -341,14 +353,16 @@ export class ApplicationsService {
             (application.jobId as any).title,
             (application.companyId as any).name,
           );
-        } else if (currentApplication.status === ApplicationStatus.UNDER_REVIEW) {
+        } else if (currentApplication.status === ApplicationStatus.APPLIED ||
+          currentApplication.status === ApplicationStatus.UNDER_REVIEW) {
           await this.emailService.sendRejectionFromUnderReviewEmail(
             (application.candidateId as any).email,
             (application.candidateId as any).name,
             (application.jobId as any).title,
             (application.companyId as any).name,
           );
-        } else if (currentApplication.status === ApplicationStatus.SHORTLISTED) {
+        } else if (currentApplication.status === ApplicationStatus.SHORTLISTED ||
+          currentApplication.status === ApplicationStatus.HOLD) {
           await this.emailService.sendRejectionFromShortlistedEmail(
             (application.candidateId as any).email,
             (application.candidateId as any).name,
