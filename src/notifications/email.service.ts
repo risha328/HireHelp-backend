@@ -17,19 +17,38 @@ export class EmailService {
     });
   }
 
+  private getEmailHeader(): string {
+    return `
+      <div style="text-align: center; padding: 40px 20px; background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%); margin-bottom: 30px; border-radius: 8px 8px 0 0;">
+        <img src="cid:logo" alt="HireHelp Logo" style="max-width: 200px; height: auto;">
+      </div>
+    `;
+  }
+
+  private getCommonAttachments() {
+    return [{
+      filename: 'logo.png',
+      path: 'd:/Hirehelp/hirehelp-frontend/public/images/logo-transparent.png',
+      cid: 'logo'
+    }];
+  }
+
   async sendShortlistEmail(candidateEmail: string, candidateName: string, jobTitle: string, companyName: string): Promise<void> {
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        ${this.getEmailHeader()}
+        <h2 style="color: #333;">Congratulations ${candidateName}!</h2>
+        <p>You've been shortlisted for the position of <strong>${jobTitle}</strong> at <strong>${companyName}</strong>.</p>
+        <p>The hiring team will be in touch with you soon for the next steps in the recruitment process.</p>
+        <p>Best regards,<br>The HireHelp Team</p>
+      </div>
+    `;
     const mailOptions = {
       from: process.env.SMTP_USER,
       to: candidateEmail,
       subject: `Congratulations! You've been shortlisted for ${jobTitle}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Congratulations ${candidateName}!</h2>
-          <p>You've been shortlisted for the position of <strong>${jobTitle}</strong> at <strong>${companyName}</strong>.</p>
-          <p>The hiring team will be in touch with you soon for the next steps in the recruitment process.</p>
-          <p>Best regards,<br>The HireHelp Team</p>
-        </div>
-      `,
+      html: emailHtml, // Using variable for consistency
+      attachments: this.getCommonAttachments()
     };
 
     try {
@@ -42,19 +61,22 @@ export class EmailService {
   }
 
   async sendApplicationConfirmationEmail(candidateEmail: string, candidateName: string, jobTitle: string, companyName: string): Promise<void> {
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        ${this.getEmailHeader()}
+        <h2 style="color: #333;">Application Received!</h2>
+        <p>Dear ${candidateName},</p>
+        <p>Thank you for applying! Your application for the position of <strong>${jobTitle}</strong> at <strong>${companyName}</strong> has been successfully submitted.</p>
+        <p>We will review your application and get back to you soon.</p>
+        <p>Best regards,<br>The HireHelp Team</p>
+      </div>
+    `;
     const mailOptions = {
       from: process.env.SMTP_USER,
       to: candidateEmail,
       subject: `Application Confirmation for ${jobTitle}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Application Received!</h2>
-          <p>Dear ${candidateName},</p>
-          <p>Thank you for applying! Your application for the position of <strong>${jobTitle}</strong> at <strong>${companyName}</strong> has been successfully submitted.</p>
-          <p>We will review your application and get back to you soon.</p>
-          <p>Best regards,<br>The HireHelp Team</p>
-        </div>
-      `,
+      html: emailHtml,
+      attachments: this.getCommonAttachments()
     };
 
     try {
@@ -956,6 +978,146 @@ export class EmailService {
       console.log(`Interviewer rescheduled email sent to ${interviewerEmail}`);
     } catch (error) {
       console.error('Error sending interviewer rescheduled email:', error);
+    }
+  }
+
+  async sendCandidateWelcomeEmail(email: string, name: string): Promise<void> {
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        ${this.getEmailHeader()}
+        <div style="padding: 32px 24px;">
+          <p style="font-size: 16px;">Dear <strong>${name}</strong>,</p>
+          <p style="font-size: 16px;">Welcome to <strong>HireHelp</strong>!</p>
+          <p style="font-size: 16px;">We’re pleased to inform you that your account has been successfully created. You can now explore job opportunities, apply to positions, and track your application status in real time.</p>
+          
+          <div style="background-color: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border: 1px solid #bae6fd;">
+            <h3 style="margin-top: 0; color: #0369a1; font-size: 18px;">What you can do next:</h3>
+            <ul style="padding-left: 20px; font-size: 15px; color: #334155;">
+              <li style="margin-bottom: 8px;">Complete your profile to increase visibility to employers</li>
+              <li style="margin-bottom: 8px;">Upload your updated resume</li>
+              <li style="margin-bottom: 8px;">Browse and apply for relevant job openings</li>
+              <li style="margin-bottom: 0;">Track your application progress from your dashboard</li>
+            </ul>
+          </div>
+          
+          <p style="font-size: 16px;">HireHelp is designed to make your job search smooth, transparent, and efficient. We’re excited to support you in your career journey.</p>
+          <p style="font-size: 16px;">If you need any assistance, feel free to reach out to our support team.</p>
+          
+          <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+            <p style="margin: 0; font-size: 16px; color: #64748b;">Best regards,</p>
+            <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: bold; color: #0284c7;">HireHelp Team</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: email,
+      subject: 'Welcome to HireHelp!',
+      html: emailHtml,
+      attachments: this.getCommonAttachments()
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Candidate welcome email sent to ${email}`);
+    } catch (error) {
+      console.error('Error sending candidate welcome email:', error);
+    }
+  }
+
+  async sendCompanyAdminWelcomeEmail(email: string, name: string): Promise<void> {
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        ${this.getEmailHeader()}
+        <div style="padding: 32px 24px;">
+          <p style="font-size: 16px;">Dear <strong>${name}</strong>,</p>
+          <p style="font-size: 16px;">Welcome to <strong>HireHelp</strong>!</p>
+          <p style="font-size: 16px;">Your Company Admin account has been successfully registered. You can now begin managing your company’s hiring process through our platform.</p>
+          
+          <div style="background-color: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border: 1px solid #bae6fd;">
+            <h3 style="margin-top: 0; color: #0369a1; font-size: 18px;">With your account, you can:</h3>
+            <ul style="padding-left: 20px; font-size: 15px; color: #334155;">
+              <li style="margin-bottom: 8px;">Post and manage job openings</li>
+              <li style="margin-bottom: 8px;">Create and manage interview rounds (Technical, HR, etc.)</li>
+              <li style="margin-bottom: 8px;">Schedule interviews candidate-wise and interviewer-wise</li>
+              <li style="margin-bottom: 8px;">Track applications using the Kanban recruitment board</li>
+              <li style="margin-bottom: 0;">Invite team members and interview panelists</li>
+            </ul>
+          </div>
+          
+          <p style="font-size: 16px;">We’re excited to support your recruitment process with a streamlined and professional hiring system.</p>
+          <p style="font-size: 16px;">If you require any assistance setting up your company profile or hiring workflow, our support team is here to help.</p>
+          
+          <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+            <p style="margin: 0; font-size: 16px; color: #64748b;">Best regards,</p>
+            <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: bold; color: #0284c7;">HireHelp Team</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: email,
+      subject: 'Welcome to HireHelp!',
+      html: emailHtml,
+      attachments: this.getCommonAttachments()
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Company Admin welcome email sent to ${email}`);
+    } catch (error) {
+      console.error('Error sending company admin welcome email:', error);
+    }
+  }
+
+  async sendSuperAdminWelcomeEmail(email: string, name: string): Promise<void> {
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        ${this.getEmailHeader()}
+        <div style="padding: 32px 24px;">
+          <p style="font-size: 16px;">Dear <strong>${name}</strong>,</p>
+          <p style="font-size: 16px;">Your Super Admin account has been successfully created.</p>
+          
+          <div style="background-color: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border: 1px solid #bae6fd;">
+            <h3 style="margin-top: 0; color: #0369a1; font-size: 18px;">You now have full administrative access to the HireHelp platform, including:</h3>
+            <ul style="padding-left: 20px; font-size: 15px; color: #334155;">
+              <li style="margin-bottom: 8px;">Managing company accounts</li>
+              <li style="margin-bottom: 8px;">Monitoring platform activity</li>
+              <li style="margin-bottom: 8px;">Overseeing recruitment workflows</li>
+              <li style="margin-bottom: 8px;">Managing system configurations</li>
+              <li style="margin-bottom: 0;">Reviewing user registrations and data</li>
+            </ul>
+          </div>
+          
+          <p style="font-size: 16px;">As a Super Admin, you play a critical role in maintaining platform integrity and operational efficiency.</p>
+          <p style="font-size: 16px;">Please ensure your login credentials remain secure and confidential.</p>
+          <p style="font-size: 16px;">If you require any technical assistance, please contact the system support team.</p>
+          
+          <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+            <p style="margin: 0; font-size: 16px; color: #64748b;">Best regards,</p>
+            <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: bold; color: #0284c7;">HireHelp Team</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: email,
+      subject: 'Your HireHelp Super Admin Account Created',
+      html: emailHtml,
+      attachments: this.getCommonAttachments()
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Super Admin welcome email sent to ${email}`);
+    } catch (error) {
+      console.error('Error sending super admin welcome email:', error);
     }
   }
 }

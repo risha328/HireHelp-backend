@@ -7,15 +7,18 @@ import { User, UserDocument } from '../users/user.schema';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
+import { EmailService } from '../notifications/email.service';
+
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private jwtService: JwtService,
+    private emailService: EmailService,
   ) { }
 
   async register(registerDto: RegisterDto): Promise<{ access_token: string; refresh_token: string; user: any }> {
-    const { name, email, password, confirmPassword, dateOfBirth, role, gender } = registerDto;
+    const { prefix, name, email, password, confirmPassword, dateOfBirth, role, gender } = registerDto;
 
     if (password !== confirmPassword) {
       throw new ConflictException('Passwords do not match');
@@ -29,6 +32,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = new this.userModel({
+      prefix,
       name,
       email,
       password: hashedPassword,
@@ -39,6 +43,21 @@ export class AuthService {
     });
 
     await user.save();
+
+    // Send welcome email based on role
+    try {
+      const displayName = user.get('prefix') ? `${user.get('prefix')} ${user.name}` : user.name;
+      if (user.role === 'CANDIDATE') {
+        await this.emailService.sendCandidateWelcomeEmail(user.email, displayName);
+      } else if (user.role === 'COMPANY_ADMIN') {
+        await this.emailService.sendCompanyAdminWelcomeEmail(user.email, displayName);
+      } else if (user.role === 'SUPER_ADMIN') {
+        await this.emailService.sendSuperAdminWelcomeEmail(user.email, displayName);
+      }
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+      // We don't throw here to avoid failing registration if email fails
+    }
 
     const payload = { email: user.email, sub: user._id.toString(), role: user.role };
     const access_token = this.jwtService.sign(payload);

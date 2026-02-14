@@ -2,6 +2,10 @@ import { IsEmail, IsNotEmpty, IsString, IsDateString, IsEnum, MinLength, Matches
 import { Role, Gender } from '../../users/user.schema';
 
 export class RegisterDto {
+  @IsOptional()
+  @IsString()
+  prefix?: string;
+
   @IsNotEmpty()
   @IsString()
   name: string;
