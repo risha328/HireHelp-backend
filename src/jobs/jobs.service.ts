@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Job, JobDocument } from './job.schema';
@@ -36,7 +36,17 @@ export class JobsService {
   }
 
   async findAll(): Promise<Job[]> {
-    return this.jobModel.find({ status: 'active' }).populate('companyId').sort({ createdAt: -1 }).exec();
+    return this.jobModel
+      .find({
+        status: 'active',
+        $or: [
+          { scheduledPublishAt: { $lte: new Date() } },
+          { scheduledPublishAt: { $exists: false } },
+        ],
+      })
+      .populate('companyId')
+      .sort({ createdAt: -1 })
+      .exec();
   }
 
   async findByCompany(companyId: string): Promise<Job[]> {
@@ -48,6 +58,16 @@ export class JobsService {
   }
 
   async update(id: string, updateData: any): Promise<Job | null> {
+    const job = await this.jobModel.findById(id).exec();
+    if (!job) {
+      throw new NotFoundException(`Job with ID ${id} not found`);
+    }
+
+    // Restriction: Cannot edit if already published
+    if (job.status === 'active' && job.scheduledPublishAt <= new Date()) {
+      throw new ForbiddenException('Published jobs cannot be edited to maintain consistency for applicants');
+    }
+
     return this.jobModel.findByIdAndUpdate(id, updateData, { new: true }).exec();
   }
 
