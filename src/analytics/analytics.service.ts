@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Company, CompanyDocument } from '../companies/company.schema';
 import { Job, JobDocument } from '../jobs/job.schema';
 import { Application, ApplicationDocument } from '../applications/application.schema';
@@ -189,5 +189,111 @@ export class AnalyticsService {
     ]);
 
     return topCompanies;
+  }
+
+  async getCompanyJobPerformance(companyId: string) {
+    console.log('getCompanyJobPerformance for companyId:', companyId);
+    let objectId: Types.ObjectId | null = null;
+    try {
+      objectId = new Types.ObjectId(companyId);
+    } catch (e) {
+      console.log('Invalid companyId format:', companyId);
+    }
+
+    const performanceData = await this.jobModel.aggregate([
+      {
+        $match: {
+          $or: [
+            { companyId: objectId },
+            { companyId: companyId }
+          ]
+        }
+      },
+      {
+        $lookup: {
+          from: 'applications',
+          let: { jobId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $or: [
+                    { $eq: ['$jobId', '$$jobId'] },
+                    { $eq: ['$jobId', { $toString: '$$jobId' }] }
+                  ]
+                }
+              }
+            },
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+          ],
+          as: 'statusCounts'
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          name: '$title',
+          applications: {
+            $reduce: {
+              input: '$statusCounts',
+              initialValue: 0,
+              in: { $add: ['$$value', '$$this.count'] }
+            }
+          },
+          statuses: {
+            $arrayToObject: {
+              $map: {
+                input: '$statusCounts',
+                as: 'item',
+                in: { k: '$$item._id', v: '$$item.count' }
+              }
+            }
+          }
+        }
+      }
+    ]);
+
+    console.log('getCompanyJobPerformance result:', JSON.stringify(performanceData, null, 2));
+    return performanceData;
+  }
+
+  async getCompanyApplicationStats(companyId: string) {
+    console.log('getCompanyApplicationStats for companyId:', companyId);
+    let objectId: Types.ObjectId | null = null;
+    try {
+      objectId = new Types.ObjectId(companyId);
+    } catch (e) {
+      console.log('Invalid companyId format:', companyId);
+    }
+
+    const stats = await this.applicationModel.aggregate([
+      {
+        $match: {
+          $or: [
+            { companyId: objectId },
+            { companyId: companyId }
+          ]
+        }
+      },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          status: '$_id',
+          count: 1
+        }
+      }
+    ]);
+
+    // Source distribution (if we had it, but let's mock it for now based on what's available or just do status breakdown)
+    // Actually, let's provide status percentages for the pie chart as requested
+
+    console.log('getCompanyApplicationStats result:', JSON.stringify(stats, null, 2));
+    return stats;
   }
 }

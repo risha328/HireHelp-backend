@@ -29,7 +29,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         throw new UnauthorizedException('User not found');
       }
       console.log('User validated successfully:', user.email);
-      return { userId: user._id.toString(), email: user.email, role: user.role };
+      return {
+        userId: user._id.toString(),
+        email: user.email,
+        role: user.role,
+        companyId: user.companyId
+      };
     } catch (error) {
       console.error('JWT validation error:', error);
       throw new UnauthorizedException('Invalid token');
