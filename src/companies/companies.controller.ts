@@ -129,4 +129,11 @@ export class CompaniesController {
   rejectCompany(@Param('id') id: string) {
     return this.companiesService.rejectCompany(id);
   }
+
+  @Delete(':id/members/:memberId')
+  @ApiOperation({ summary: 'Remove a member from the company' })
+  @ApiResponse({ status: 200, description: 'Member removed successfully' })
+  removeMember(@Param('id') id: string, @Param('memberId') memberId: string) {
+    return this.companiesService.removeMember(id, memberId);
+  }
 }
