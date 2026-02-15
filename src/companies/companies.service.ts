@@ -205,4 +205,12 @@ export class CompaniesService {
 
     return savedUser;
   }
+
+  async removeMember(companyId: string, memberId: string): Promise<User | null> {
+    const user = await this.userModel.findOne({ _id: memberId, companyId }).exec();
+    if (!user) {
+      throw new Error('Member not found in this company');
+    }
+    return this.userModel.findByIdAndDelete(memberId).exec();
+  }
 }
