@@ -35,6 +35,10 @@ export class CreateJobDto {
   applicationDeadline?: string;
 
   @IsOptional()
+  @IsDateString()
+  scheduledPublishAt?: string;
+
+  @IsOptional()
   @IsIn(['active', 'inactive', 'closed'])
   status?: string;
 }

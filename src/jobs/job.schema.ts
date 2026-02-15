@@ -32,6 +32,9 @@ export class Job {
   @Prop()
   applicationDeadline?: Date;
 
+  @Prop({ default: Date.now })
+  scheduledPublishAt: Date;
+
   @Prop({ default: 'active' })
   status: string;
 }
