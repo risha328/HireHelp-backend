@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Company, CompanyDocument } from './company.schema';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { User, UserDocument, Role } from '../users/user.schema';
+import { Job, JobDocument } from '../jobs/job.schema';
 import * as bcrypt from 'bcrypt';
 import { EmailService } from '../notifications/email.service';
 
@@ -13,6 +14,7 @@ export class CompaniesService {
   constructor(
     @InjectModel(Company.name) private companyModel: Model<CompanyDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Job.name) private jobModel: Model<JobDocument>,
     private emailService: EmailService,
   ) { }
 
@@ -63,6 +65,50 @@ export class CompaniesService {
 
   async findAll(): Promise<Company[]> {
     return this.companyModel.find().exec();
+  }
+
+  async findFeatured(): Promise<any[]> {
+    // Use aggregation to get featured companies with job counts
+    const featuredCompanies = await this.companyModel.aggregate([
+      {
+        $match: {
+          verificationStatus: 'verified'
+        }
+      },
+      {
+        $lookup: {
+          from: 'jobs',
+          localField: '_id',
+          foreignField: 'companyId',
+          pipeline: [
+            {
+              $match: {
+                status: 'active'
+              }
+            }
+          ],
+          as: 'jobs'
+        }
+      },
+      {
+        $addFields: {
+          openJobs: { $size: '$jobs' }
+        }
+      },
+      {
+        $project: {
+          jobs: 0 // Remove the jobs array from the result, keep only the count
+        }
+      },
+      {
+        $sort: { openJobs: -1 } // Sort by number of open jobs descending
+      },
+      {
+        $limit: 8
+      }
+    ]);
+
+    return featuredCompanies;
   }
 
   async findOne(id: string): Promise<Company | null> {

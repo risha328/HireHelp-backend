@@ -11,11 +11,18 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @ApiTags('companies')
 @Controller('companies')
-@UseGuards(JwtAuthGuard)
 export class CompaniesController {
   constructor(private readonly companiesService: CompaniesService) { }
 
+  @Get('featured')
+  @ApiOperation({ summary: 'Get featured companies' })
+  @ApiResponse({ status: 200, description: 'Featured companies retrieved successfully' })
+  findFeatured() {
+    return this.companiesService.findFeatured();
+  }
+
   @Post()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create a new company' })
   @ApiResponse({ status: 201, description: 'Company created successfully' })
   create(@Body() createCompanyDto: CreateCompanyDto) {
@@ -23,6 +30,7 @@ export class CompaniesController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get all companies' })
   @ApiResponse({ status: 200, description: 'Companies retrieved successfully' })
   findAll() {
@@ -30,6 +38,7 @@ export class CompaniesController {
   }
 
   @Get('my-company')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get current user\'s company' })
   @ApiResponse({ status: 200, description: 'Company retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Company not found' })
@@ -46,6 +55,7 @@ export class CompaniesController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get a company by ID' })
   @ApiResponse({ status: 200, description: 'Company retrieved successfully' })
   findOne(@Param('id') id: string) {
@@ -53,6 +63,7 @@ export class CompaniesController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update a company' })
   @ApiResponse({ status: 200, description: 'Company updated successfully' })
   update(@Param('id') id: string, @Body() updateCompanyDto: UpdateCompanyDto) {
@@ -60,6 +71,7 @@ export class CompaniesController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Delete a company' })
   @ApiResponse({ status: 200, description: 'Company deleted successfully' })
   remove(@Param('id') id: string) {
@@ -67,6 +79,7 @@ export class CompaniesController {
   }
 
   @Get(':id/admins')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get all admins for a company' })
   @ApiResponse({ status: 200, description: 'Company admins retrieved successfully' })
   getCompanyAdmins(@Param('id') id: string) {
@@ -74,6 +87,7 @@ export class CompaniesController {
   }
 
   @Post(':id/invite')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Invite a member to the company' })
   @ApiResponse({ status: 201, description: 'Member invited successfully' })
   inviteMember(@Param('id') id: string, @Body() inviteMemberDto: InviteMemberDto) {
@@ -81,6 +95,7 @@ export class CompaniesController {
   }
 
   @Post('upload-logo')
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('logo', {
     storage: diskStorage({
       destination: './uploads/logos',
@@ -117,6 +132,7 @@ export class CompaniesController {
   }
 
   @Patch(':id/verify')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Verify a company (Admin only)' })
   @ApiResponse({ status: 200, description: 'Company verified successfully' })
   verifyCompany(@Param('id') id: string) {
@@ -124,6 +140,7 @@ export class CompaniesController {
   }
 
   @Patch(':id/reject')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Reject a company (Admin only)' })
   @ApiResponse({ status: 200, description: 'Company rejected successfully' })
   rejectCompany(@Param('id') id: string) {
@@ -131,6 +148,7 @@ export class CompaniesController {
   }
 
   @Delete(':id/members/:memberId')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Remove a member from the company' })
   @ApiResponse({ status: 200, description: 'Member removed successfully' })
   removeMember(@Param('id') id: string, @Param('memberId') memberId: string) {
