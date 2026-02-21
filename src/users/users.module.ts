@@ -9,9 +9,7 @@ import { User, UserSchema } from './user.schema';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    MulterModule.register({
-      dest: './uploads/resumes',
-    }),
+    MulterModule.register({}),
   ],
   controllers: [UsersController, UploadsController],
   providers: [UsersService],
