@@ -1,18 +1,21 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, UseInterceptors, UploadedFile, BadRequestException, Req } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { memoryStorage } from 'multer';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @ApiTags('companies')
 @Controller('companies')
 export class CompaniesController {
-  constructor(private readonly companiesService: CompaniesService) { }
+  constructor(
+    private readonly companiesService: CompaniesService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) { }
 
   @Get('featured')
   @ApiOperation({ summary: 'Get featured companies' })
@@ -97,14 +100,7 @@ export class CompaniesController {
   @Post('upload-logo')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('logo', {
-    storage: diskStorage({
-      destination: './uploads/logos',
-      filename: (req, file, callback) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = extname(file.originalname);
-        callback(null, `${(req as any).user.userId}-${uniqueSuffix}${ext}`);
-      },
-    }),
+    storage: memoryStorage(),
     fileFilter: (req, file, callback) => {
       if (!file.originalname.match(/\.(png|jpg|jpeg)$/)) {
         return callback(new BadRequestException('Only PNG and JPG files are allowed'), false);
@@ -122,12 +118,16 @@ export class CompaniesController {
       throw new BadRequestException('No file uploaded');
     }
 
-    const logoUrl = `/uploads/logos/${file.filename}`;
+    const { secure_url } = await this.cloudinaryService.uploadBuffer(
+      file.buffer,
+      'hirehelp/logos',
+      { resource_type: 'image', originalFilename: file.originalname },
+    );
 
     return {
       message: 'Logo uploaded successfully',
-      logoUrl,
-      filename: file.filename,
+      logoUrl: secure_url,
+      filename: file.originalname,
     };
   }
 

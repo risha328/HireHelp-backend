@@ -6,6 +6,7 @@ import { CreateApplicationDto } from './dto/create-application.dto';
 import { EmailService } from '../notifications/email.service';
 import { RoundsService } from '../rounds/rounds.service';
 import { RoundType, RoundDocument } from '../rounds/round.schema';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Injectable()
 export class ApplicationsService {
@@ -14,6 +15,7 @@ export class ApplicationsService {
     private emailService: EmailService,
     @Inject(forwardRef(() => RoundsService))
     private roundsService: RoundsService,
+    private cloudinaryService: CloudinaryService,
   ) { }
 
   async create(
@@ -24,41 +26,24 @@ export class ApplicationsService {
     let resumeUrl: string | undefined;
     let coverLetterUrl: string | undefined;
 
-    // Handle file uploads
     if (files?.resume && files.resume[0]) {
-      const resumeFile = files.resume[0];
-      const timestamp = Date.now();
-      const filename = `${candidateId}-${timestamp}-${resumeFile.originalname}`;
-      const fs = require('fs');
-      const path = require('path');
-
-      // Ensure uploads directory exists
-      const uploadsDir = path.join(process.cwd(), 'uploads', 'resumes');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-
-      const filePath = path.join(uploadsDir, filename);
-      fs.writeFileSync(filePath, resumeFile.buffer);
-      resumeUrl = `/uploads/resumes/${filename}`;
+      const file = files.resume[0];
+      const { secure_url } = await this.cloudinaryService.uploadBuffer(
+        file.buffer,
+        'hirehelp/resumes',
+        { resource_type: 'raw', originalFilename: file.originalname },
+      );
+      resumeUrl = secure_url;
     }
 
     if (files?.coverLetterFile && files.coverLetterFile[0]) {
-      const coverLetterFile = files.coverLetterFile[0];
-      const timestamp = Date.now();
-      const filename = `${candidateId}-${timestamp}-${coverLetterFile.originalname}`;
-      const fs = require('fs');
-      const path = require('path');
-
-      // Ensure uploads directory exists
-      const uploadsDir = path.join(process.cwd(), 'uploads', 'resumes'); // Using same directory for simplicity
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-
-      const filePath = path.join(uploadsDir, filename);
-      fs.writeFileSync(filePath, coverLetterFile.buffer);
-      coverLetterUrl = `/uploads/resumes/${filename}`;
+      const file = files.coverLetterFile[0];
+      const { secure_url } = await this.cloudinaryService.uploadBuffer(
+        file.buffer,
+        'hirehelp/cover-letters',
+        { resource_type: 'raw', originalFilename: file.originalname },
+      );
+      coverLetterUrl = secure_url;
     }
 
     const application = new this.applicationModel({

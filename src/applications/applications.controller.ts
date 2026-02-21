@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request, UseInterceptors, UploadedFiles } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { ApplicationsService } from './applications.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { UpdateApplicationStatusDto } from './dto/update-application-status.dto';
@@ -16,10 +17,13 @@ export class ApplicationsController {
   @Post()
   @Roles(Role.CANDIDATE)
   @UseGuards(RolesGuard)
-  @UseInterceptors(FileFieldsInterceptor([
-    { name: 'resume', maxCount: 1 },
-    { name: 'coverLetterFile', maxCount: 1 },
-  ]))
+  @UseInterceptors(FileFieldsInterceptor(
+    [
+      { name: 'resume', maxCount: 1 },
+      { name: 'coverLetterFile', maxCount: 1 },
+    ],
+    { storage: memoryStorage() },
+  ))
   create(
     @Body() createApplicationDto: CreateApplicationDto,
     @Request() req,
