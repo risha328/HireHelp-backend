@@ -1,8 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 10;
 
 @ApiTags('jobs')
 @Controller('jobs')
@@ -20,9 +23,27 @@ export class JobsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all jobs' })
+  @ApiOperation({ summary: 'Get all jobs (paginated when page/limit provided)' })
   @ApiResponse({ status: 200, description: 'Jobs retrieved successfully' })
-  findAll() {
+  async findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('jobType') jobType?: string,
+    @Query('search') search?: string,
+    @Query('location') location?: string,
+  ) {
+    const hasPagination = page !== undefined || limit !== undefined;
+    if (hasPagination) {
+      const pageNum = Math.max(1, parseInt(page || '', 10) || DEFAULT_PAGE);
+      const limitNum = Math.min(50, Math.max(1, parseInt(limit || '', 10) || DEFAULT_LIMIT));
+      return this.jobsService.findAllPaginated({
+        page: pageNum,
+        limit: limitNum,
+        jobType: jobType || undefined,
+        search: search || undefined,
+        location: location || undefined,
+      });
+    }
     return this.jobsService.findAll();
   }
 
