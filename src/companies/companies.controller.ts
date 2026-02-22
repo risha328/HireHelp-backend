@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, UseInterceptors, UploadedFile, BadRequestException, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Put, Param, Delete, UseGuards, UseInterceptors, UploadedFile, BadRequestException, Req } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
+import { UpdateMemberDto, UpdateMemberBodyDto } from './dto/update-member.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
@@ -16,6 +17,15 @@ export class CompaniesController {
     private readonly companiesService: CompaniesService,
     private readonly cloudinaryService: CloudinaryService,
   ) { }
+
+  @Post('update-member')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update a team member (by body)' })
+  @ApiResponse({ status: 200, description: 'Member updated successfully' })
+  updateMemberByBody(@Body() body: UpdateMemberBodyDto) {
+    const { companyId, memberId, ...dto } = body;
+    return this.companiesService.updateMember(companyId, memberId, dto);
+  }
 
   @Get('featured')
   @ApiOperation({ summary: 'Get featured companies' })
@@ -57,6 +67,49 @@ export class CompaniesController {
     return { company };
   }
 
+  @Get(':id/admins')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get all admins for a company' })
+  @ApiResponse({ status: 200, description: 'Company admins retrieved successfully' })
+  getCompanyAdmins(@Param('id') id: string) {
+    return this.companiesService.getCompanyAdmins(id);
+  }
+
+  @Post(':id/invite')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Invite a member to the company' })
+  @ApiResponse({ status: 201, description: 'Member invited successfully' })
+  inviteMember(@Param('id') id: string, @Body() inviteMemberDto: InviteMemberDto) {
+    return this.companiesService.inviteMember(
+      id,
+      inviteMemberDto.email,
+      inviteMemberDto.name,
+      inviteMemberDto.role,
+      inviteMemberDto.title,
+    );
+  }
+
+  @Patch(':id/members/:memberId')
+  @Put(':id/members/:memberId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update a team member' })
+  @ApiResponse({ status: 200, description: 'Member updated successfully' })
+  updateMember(
+    @Param('id') id: string,
+    @Param('memberId') memberId: string,
+    @Body() updateMemberDto: UpdateMemberDto,
+  ) {
+    return this.companiesService.updateMember(id, memberId, updateMemberDto);
+  }
+
+  @Delete(':id/members/:memberId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Remove a member from the company' })
+  @ApiResponse({ status: 200, description: 'Member removed successfully' })
+  removeMember(@Param('id') id: string, @Param('memberId') memberId: string) {
+    return this.companiesService.removeMember(id, memberId);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get a company by ID' })
@@ -79,22 +132,6 @@ export class CompaniesController {
   @ApiResponse({ status: 200, description: 'Company deleted successfully' })
   remove(@Param('id') id: string) {
     return this.companiesService.remove(id);
-  }
-
-  @Get(':id/admins')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Get all admins for a company' })
-  @ApiResponse({ status: 200, description: 'Company admins retrieved successfully' })
-  getCompanyAdmins(@Param('id') id: string) {
-    return this.companiesService.getCompanyAdmins(id);
-  }
-
-  @Post(':id/invite')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Invite a member to the company' })
-  @ApiResponse({ status: 201, description: 'Member invited successfully' })
-  inviteMember(@Param('id') id: string, @Body() inviteMemberDto: InviteMemberDto) {
-    return this.companiesService.inviteMember(id, inviteMemberDto.email, inviteMemberDto.name, inviteMemberDto.role);
   }
 
   @Post('upload-logo')
@@ -145,13 +182,5 @@ export class CompaniesController {
   @ApiResponse({ status: 200, description: 'Company rejected successfully' })
   rejectCompany(@Param('id') id: string) {
     return this.companiesService.rejectCompany(id);
-  }
-
-  @Delete(':id/members/:memberId')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Remove a member from the company' })
-  @ApiResponse({ status: 200, description: 'Member removed successfully' })
-  removeMember(@Param('id') id: string, @Param('memberId') memberId: string) {
-    return this.companiesService.removeMember(id, memberId);
   }
 }

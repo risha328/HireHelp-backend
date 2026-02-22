@@ -7,6 +7,7 @@ import { RoundEvaluation, RoundEvaluationSchema } from './round-evaluation.schem
 import { MCQResponse, MCQResponseSchema } from './mcq-response.schema';
 import { JobsModule } from '../jobs/jobs.module';
 import { ApplicationsModule } from '../applications/applications.module';
+import { CompaniesModule } from '../companies/companies.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { GoogleSheetsService } from './google-sheets.service';
 import { GoogleFormsService } from './google-forms.service';
@@ -21,6 +22,7 @@ import { GoogleFormsService } from './google-forms.service';
     ]),
     JobsModule,
     forwardRef(() => ApplicationsModule),
+    CompaniesModule,
     NotificationsModule,
   ],
   controllers: [RoundsController],

@@ -400,7 +400,6 @@ export class EmailService {
           <ul style="list-style-type: none; padding-left: 0; margin-top: 10px;">
             <li style="margin-bottom: 8px;">• <strong>Name:</strong> ${candidateName}</li>
             <li style="margin-bottom: 8px;">• <strong>Position:</strong> ${position}</li>
-            <li style="margin-bottom: 8px;">• <strong>Experience:</strong> ${experience}</li>
           </ul>
 
           <h3 style="border-bottom: 2px solid #e0e0e0; padding-bottom: 5px; margin-top: 25px; color: #2c3e50;">Interview Schedule</h3>
@@ -747,7 +746,6 @@ export class EmailService {
           <ul style="list-style-type: none; padding-left: 0;">
             <li style="margin-bottom: 8px;">• <strong>Name:</strong> ${candidateName}</li>
             <li style="margin-bottom: 8px;">• <strong>Position:</strong> ${position}</li>
-            <li style="margin-bottom: 8px;">• <strong>Experience:</strong> ${experience}</li>
           </ul>
 
           <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Interview Schedule</h3>
@@ -787,7 +785,6 @@ export class EmailService {
           <ul style="list-style-type: none; padding-left: 0;">
             <li style="margin-bottom: 8px;">• <strong>Name:</strong> ${candidateName}</li>
             <li style="margin-bottom: 8px;">• <strong>Position:</strong> ${position}</li>
-            <li style="margin-bottom: 8px;">• <strong>Experience:</strong> ${experience}</li>
           </ul>
 
           <h3 style="color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 25px;">Interview Schedule</h3>

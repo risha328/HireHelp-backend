@@ -215,7 +215,7 @@ export class CompaniesService {
     }).exec();
   }
 
-  async inviteMember(companyId: string, email: string, name: string, role: Role): Promise<User> {
+  async inviteMember(companyId: string, email: string, name: string, role: Role, title?: string): Promise<User> {
     // 1. Check if user already exists
     const existingUser = await this.userModel.findOne({ email });
     if (existingUser) {
@@ -230,6 +230,7 @@ export class CompaniesService {
     const newUser = new this.userModel({
       name,
       email,
+      title: title || undefined,
       password: hashedPassword,
       role,
       companyId,
@@ -250,6 +251,24 @@ export class CompaniesService {
     );
 
     return savedUser;
+  }
+
+  async updateMember(
+    companyId: string,
+    memberId: string,
+    updates: { name?: string; title?: string; role?: Role },
+  ): Promise<User | null> {
+    const user = await this.userModel.findOne({ _id: memberId, companyId }).exec();
+    if (!user) {
+      throw new Error('Member not found in this company');
+    }
+    const toSet: Partial<User> = {};
+    if (updates.name !== undefined) toSet.name = updates.name;
+    if (updates.title !== undefined) toSet.title = updates.title;
+    if (updates.role !== undefined) toSet.role = updates.role;
+    return this.userModel
+      .findByIdAndUpdate(memberId, { $set: toSet }, { new: true })
+      .exec();
   }
 
   async removeMember(companyId: string, memberId: string): Promise<User | null> {
