@@ -209,44 +209,9 @@ export class ApplicationsService {
               newRoundObj.instructions || ''
             );
             console.log('✓ Coding test email sent successfully!');
-          } else if (newRoundObj.type === RoundType.INTERVIEW) {
-            console.log('✓ Round type is INTERVIEW - sending candidate notification email...');
-
-            const dateStr = newRoundObj.scheduledAt
-              ? new Date(newRoundObj.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-              : 'TBD';
-
-            const timeStr = newRoundObj.scheduledAt
-              ? new Date(newRoundObj.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-              : 'TBD';
-
-            console.log('Email details:', {
-              to: (application.candidateId as any).email,
-              candidateName: (application.candidateId as any).name,
-              position: (application.jobId as any).title,
-              experience: '[Fresher / X years]',
-              date: dateStr,
-              time: timeStr,
-              mode: newRoundObj.interviewMode || 'Offline',
-              venueOrPlatform: newRoundObj.platform || 'HireHelp Office\nWhitefield, Bengaluru',
-              instructions: newRoundObj.instructions || ''
-            });
-
-            await this.emailService.sendCandidateInterviewNotificationEmail(
-              (application.candidateId as any).email,
-              (application.candidateId as any).name,
-              (application.jobId as any).title,
-              newRoundObj.name,
-              '[Fresher / X years]',
-              dateStr,
-              timeStr,
-              newRoundObj.interviewMode || 'Offline',
-              newRoundObj.meetingLink || newRoundObj.platform || '',
-              newRoundObj.instructions || '',
-              newRoundObj.scheduling?.reportingTime,
-              newRoundObj.locationDetails
-            );
-            console.log('✓ Candidate interview notification email sent successfully!');
+          } else if (newRoundObj.type === RoundType.INTERVIEW || newRoundObj.type === RoundType.TECHNICAL || newRoundObj.type === RoundType.HR) {
+            // Do not email candidate when just moving to interview round. Emails are sent only when interview is scheduled (assignInterviewer in rounds.service).
+            console.log('✓ Round type is interview (INTERVIEW/TECHNICAL/HR) - skipping early notification; candidate will be notified when interview is scheduled.');
           } else {
             console.log('✗ Round type is neither CODING nor INTERVIEW:', newRoundObj.type);
           }

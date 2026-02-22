@@ -180,6 +180,14 @@ export class RoundsController {
     return this.roundsService.getEvaluationsByApplications(body.applicationIds);
   }
 
+  @Post('evaluations/ensure')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Ensure evaluation exists for application and round (create if missing)' })
+  @ApiResponse({ status: 200, description: 'Evaluation found or created' })
+  ensureEvaluationForSchedule(@Body() body: { applicationId: string; roundId: string }) {
+    return this.roundsService.ensureEvaluationForSchedule(body.applicationId, body.roundId);
+  }
+
   @Patch('evaluation/:evaluationId/reschedule')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Reschedule a missed interview' })

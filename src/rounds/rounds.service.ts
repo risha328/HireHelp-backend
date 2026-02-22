@@ -8,6 +8,7 @@ import { JobsService } from '../jobs/jobs.service';
 import { RoundEvaluation, RoundEvaluationDocument, EvaluationStatus } from './round-evaluation.schema';
 import { MCQResponse, MCQResponseDocument } from './mcq-response.schema';
 import { ApplicationsService } from '../applications/applications.service';
+import { CompaniesService } from '../companies/companies.service';
 import { EmailService } from '../notifications/email.service';
 import { GoogleSheetsService } from './google-sheets.service';
 import { GoogleFormsService } from './google-forms.service';
@@ -22,6 +23,7 @@ export class RoundsService {
     private readonly jobsService: JobsService,
     @Inject(forwardRef(() => ApplicationsService))
     private readonly applicationsService: ApplicationsService,
+    private readonly companiesService: CompaniesService,
     private readonly emailService: EmailService,
     private readonly googleSheetsService: GoogleSheetsService,
     private readonly googleFormsService: GoogleFormsService,
@@ -551,16 +553,21 @@ export class RoundsService {
         );
 
         if (!exists) {
-          // Missing evaluation detected! Create it.
+          // Missing evaluation detected! Create it using a company admin as evaluator.
           try {
             console.log(`Self-healing: Creating missing evaluation for App ${(app as any)._id}, Round ${roundId}`);
-            const companyId = (app.companyId as any)._id || app.companyId;
-
-            // Use assignCandidateToRound to create the record
+            const companyId = ((app as any).companyId?._id || (app as any).companyId)?.toString();
+            if (!companyId) continue;
+            const admins = await this.companiesService.getCompanyAdmins(companyId);
+            const evaluatorId = admins?.length > 0 ? (admins[0] as any)._id?.toString() : null;
+            if (!evaluatorId) {
+              console.error(`Self-healing: No company admin for company ${companyId}, skipping evaluation create`);
+              continue;
+            }
             const newEvaluation = await this.assignCandidateToRound(
               roundId,
               (app as any)._id.toString(),
-              companyId.toString()
+              evaluatorId
             );
             missingEvaluations.push(newEvaluation);
           } catch (err) {
@@ -617,6 +624,27 @@ export class RoundsService {
     return updatedEvaluations;
   }
 
+  /**
+   * Ensure an evaluation exists for (applicationId, roundId). Create one if missing so scheduling can proceed.
+   */
+  async ensureEvaluationForSchedule(applicationId: string, roundId: string): Promise<RoundEvaluationDocument> {
+    const existing = await this.roundEvaluationModel
+      .findOne({ applicationId, roundId })
+      .populate(['roundId', 'applicationId', 'evaluatorId'])
+      .exec();
+    if (existing) return existing;
+
+    const application = await this.applicationsService.findOne(applicationId);
+    const companyId = (application.companyId as any)?._id?.toString() || (application.companyId as any)?.toString();
+    if (!companyId) throw new NotFoundException('Application has no company');
+
+    const admins = await this.companiesService.getCompanyAdmins(companyId);
+    const evaluatorId = admins.length > 0 ? (admins[0] as any)._id.toString() : null;
+    if (!evaluatorId) throw new NotFoundException('No company admin found to assign as evaluator');
+
+    return this.assignCandidateToRound(roundId, applicationId, evaluatorId);
+  }
+
   async assignInterviewer(
     evaluationId: string,
     data: {
@@ -666,16 +694,14 @@ export class RoundsService {
         const dateStr = new Date(data.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         const timeStr = new Date(data.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-        // Determine interview type display name
-        let interviewTypeDisplay = 'Interview';
+        // Determine interview type display name (avoid "Interview Interview" when round type is generic 'interview')
+        let interviewTypeDisplay = data.interviewType || 'Interview';
         if (round.type) {
-          if (round.type.toString().toLowerCase() === 'hr') {
-            interviewTypeDisplay = 'HR Interview';
-          } else if (round.type.toString().toLowerCase() === 'technical') {
-            interviewTypeDisplay = 'Technical Interview';
-          } else {
-            interviewTypeDisplay = round.type.charAt(0).toUpperCase() + round.type.slice(1).replace(/_/g, ' ') + ' Interview';
-          }
+          const rt = round.type.toString().toLowerCase();
+          if (rt === 'hr') interviewTypeDisplay = 'HR Interview';
+          else if (rt === 'technical') interviewTypeDisplay = 'Technical Interview';
+          else if (rt === 'interview') interviewTypeDisplay = 'Interview';
+          else interviewTypeDisplay = round.type.charAt(0).toUpperCase() + round.type.slice(1).replace(/_/g, ' ') + ' Interview';
         }
 
         // Calculate reporting time if not provided (15 minutes before interview time for offline)
@@ -794,16 +820,14 @@ export class RoundsService {
         const dateStr = new Date(rescheduleData.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         const timeStr = new Date(rescheduleData.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-        // Determine interview type display name
-        let interviewTypeDisplay = 'Interview';
+        // Determine interview type display name (avoid "Interview Interview" when round type is generic 'interview')
+        let interviewTypeDisplay = evaluation.interviewType || 'Interview';
         if (round.type) {
-          if (round.type.toString().toLowerCase() === 'hr') {
-            interviewTypeDisplay = 'HR Interview';
-          } else if (round.type.toString().toLowerCase() === 'technical') {
-            interviewTypeDisplay = 'Technical Interview';
-          } else {
-            interviewTypeDisplay = round.type.charAt(0).toUpperCase() + round.type.slice(1).replace(/_/g, ' ') + ' Interview';
-          }
+          const rt = round.type.toString().toLowerCase();
+          if (rt === 'hr') interviewTypeDisplay = 'HR Interview';
+          else if (rt === 'technical') interviewTypeDisplay = 'Technical Interview';
+          else if (rt === 'interview') interviewTypeDisplay = 'Interview';
+          else interviewTypeDisplay = round.type.charAt(0).toUpperCase() + round.type.slice(1).replace(/_/g, ' ') + ' Interview';
         }
 
         const candidateEmail = (application.candidateId as any).email;
