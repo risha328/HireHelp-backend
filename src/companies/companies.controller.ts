@@ -43,8 +43,7 @@ export class CompaniesController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Get all companies' })
+  @ApiOperation({ summary: 'Get all companies (public)' })
   @ApiResponse({ status: 200, description: 'Companies retrieved successfully' })
   findAll() {
     return this.companiesService.findAll();
@@ -111,8 +110,7 @@ export class CompaniesController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Get a company by ID' })
+  @ApiOperation({ summary: 'Get a company by ID (public)' })
   @ApiResponse({ status: 200, description: 'Company retrieved successfully' })
   findOne(@Param('id') id: string) {
     return this.companiesService.findOne(id);
