@@ -199,6 +199,65 @@ export class EmailService {
     }
   }
 
+  async sendWelcomeOnboardingEmail(
+    candidateEmail: string,
+    candidateName: string,
+    jobTitle: string,
+    companyName: string,
+    joiningDateFormatted: string,
+    hrEmail: string,
+    hrName?: string,
+    designation?: string,
+    companyContactInfo?: string,
+  ): Promise<void> {
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      const err = new Error(
+        'SMTP is not configured. Set SMTP_USER and SMTP_PASS in your .env to send welcome onboarding emails.',
+      );
+      console.error(err.message);
+      throw err;
+    }
+    const hrSignatory = hrName || 'HR Team';
+    const designationLine = designation ? `${designation}<br>` : '';
+    const contactLine = companyContactInfo || hrEmail || companyName;
+    const commonAttachments = this.getCommonAttachments() ?? [];
+    const hasLogo = commonAttachments.length > 0;
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        ${this.getEmailHeader(hasLogo)}
+        <h2 style="color: #333;">Welcome to ${companyName}</h2>
+        <p>Dear ${candidateName},</p>
+        <p>Congratulations and welcome to <strong>${companyName}</strong>!</p>
+        <p>We are delighted to confirm your acceptance of our offer for the position of <strong>${jobTitle}</strong>. We are excited to have you join our team and look forward to the contributions you will make.</p>
+        <p>As part of the onboarding process, you will now gain access to your onboarding dashboard, where you can:</p>
+        <ul>
+          <li>Complete required documentation</li>
+          <li>Upload necessary identity and employment documents</li>
+          <li>Review company policies</li>
+          <li>Access pre-joining instructions</li>
+        </ul>
+        <p>Your scheduled joining date is <strong>${joiningDateFormatted}</strong>.</p>
+        <p>If you have any questions or require assistance at any stage of the onboarding process, please feel free to reach out to our HR team at <a href="mailto:${hrEmail}">${hrEmail}</a>.</p>
+        <p>Once again, welcome aboard. We look forward to working with you and wish you a successful journey with us.</p>
+        <p>Warm regards,<br>${hrSignatory}<br>${designationLine}${companyName}<br>${contactLine}</p>
+      </div>
+    `;
+    const mailOptions: nodemailer.SendMailOptions = {
+      from: process.env.SMTP_USER,
+      to: candidateEmail,
+      subject: `Welcome to ${companyName} – Onboarding`,
+      html: emailHtml,
+      attachments: commonAttachments,
+    };
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Welcome onboarding email sent to ${candidateEmail}`);
+    } catch (error) {
+      console.error('Error sending welcome onboarding email:', error);
+      throw error;
+    }
+  }
+
   async sendHoldEmail(candidateEmail: string, candidateName: string, jobTitle: string, companyName: string): Promise<void> {
     const mailOptions = {
       from: process.env.SMTP_USER,

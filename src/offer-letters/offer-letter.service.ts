@@ -185,6 +185,10 @@ export class OfferLetterService {
     (application as any).offerDetails = offerDetails;
     (application as any).offerLetterUrl = secure_url;
     (application as any).offerSentAt = new Date();
+    if (dto.startDate) {
+      const joinDate = new Date(dto.startDate);
+      if (!isNaN(joinDate.getTime())) (application as any).joiningDate = joinDate;
+    }
     await application.save();
 
     const candidateEmail = (application.candidateId as any)?.email;

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Application, ApplicationDocument, ApplicationStatus } from './application.schema';
@@ -318,5 +318,83 @@ export class ApplicationsService {
     }
 
     return application;
+  }
+
+  /** Convert accepted hire to employee: send welcome email and unlock document upload. Company admin only. */
+  async convertToEmployee(applicationId: string, companyId: string): Promise<Application> {
+    const application = await this.applicationModel
+      .findById(applicationId)
+      .populate('candidateId', 'name email')
+      .populate('jobId', 'title')
+      .populate('companyId', 'name contactEmail contactPhone hrContactName hrDesignation')
+      .exec();
+    if (!application) {
+      throw new NotFoundException('Application not found');
+    }
+    const appCompanyId = (application.companyId as any)?._id?.toString?.() ?? (application.companyId as any)?.toString?.();
+    if (appCompanyId !== companyId) {
+      throw new ForbiddenException('Application does not belong to your company');
+    }
+    if (application.status !== ApplicationStatus.HIRED) {
+      throw new BadRequestException('Application must be in HIRED status');
+    }
+    if (application.offerAccepted !== true) {
+      throw new BadRequestException('Candidate must have accepted the offer');
+    }
+    if ((application as any).convertedToEmployee === true) {
+      return application;
+    }
+    const joiningDate = (application as any).joiningDate
+      ? new Date((application as any).joiningDate)
+      : (application.offerDetails?.startDate ? new Date(application.offerDetails.startDate) : null);
+    if (!joiningDate || isNaN(joiningDate.getTime())) {
+      throw new BadRequestException('Joining date is not set. Set it in the offer or application.');
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const joinDay = new Date(joiningDate);
+    joinDay.setHours(0, 0, 0, 0);
+    if (joinDay > today) {
+      throw new BadRequestException('Convert to employee is only available on or after the joining date.');
+    }
+    const candidateEmail = (application.candidateId as any)?.email;
+    if (!candidateEmail) {
+      throw new BadRequestException('Candidate email not found');
+    }
+    const candidateName = (application.candidateId as any)?.name || 'Candidate';
+    const jobTitle = (application.jobId as any)?.title || application.offerDetails?.jobTitle || 'the position';
+    const companyName = (application.companyId as any)?.name || 'Company';
+    const company = application.companyId as any;
+    const hrEmail = company?.contactEmail || process.env.SMTP_USER || '';
+    const joiningDateFormatted = joiningDate.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    const companyContactInfo = [company?.contactPhone, company?.contactEmail].filter(Boolean).join(', ') || companyName;
+    try {
+      await this.emailService.sendWelcomeOnboardingEmail(
+        candidateEmail,
+        candidateName,
+        jobTitle,
+        companyName,
+        joiningDateFormatted,
+        hrEmail,
+        company?.hrContactName,
+        company?.hrDesignation,
+        companyContactInfo,
+      );
+    } catch (err) {
+      console.error('Convert to employee: welcome email failed', err);
+      throw err;
+    }
+    (application as any).convertedToEmployee = true;
+    await application.save();
+    return this.applicationModel
+      .findById(applicationId)
+      .populate('candidateId', 'name email phone')
+      .populate('jobId', 'title')
+      .populate('companyId', 'name')
+      .exec() as Promise<Application>;
   }
 }

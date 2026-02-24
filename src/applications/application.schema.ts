@@ -63,6 +63,22 @@ export class Application {
     jobTitle?: string;
     candidateName?: string;
   };
+
+  /** Onboarding (after offer accepted) */
+  @Prop()
+  joiningDate?: Date;
+
+  @Prop({ default: 0 })
+  onboardingProgress?: number;
+
+  @Prop({ default: 'pending' })
+  documentStatus?: 'pending' | 'completed';
+
+  @Prop({ default: 'pending' })
+  backgroundVerificationStatus?: string;
+
+  @Prop({ default: false })
+  convertedToEmployee?: boolean;
 }
 
 export const ApplicationSchema = SchemaFactory.createForClass(Application);
