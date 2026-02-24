@@ -8,11 +8,15 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { Role } from '../users/user.schema';
+import { OfferLetterService } from '../offer-letters/offer-letter.service';
 
 @Controller('applications')
 @UseGuards(JwtAuthGuard)
 export class ApplicationsController {
-  constructor(private readonly applicationsService: ApplicationsService) { }
+  constructor(
+    private readonly applicationsService: ApplicationsService,
+    private readonly offerLetterService: OfferLetterService,
+  ) { }
 
   @Post()
   @Roles(Role.CANDIDATE)
@@ -51,6 +55,13 @@ export class ApplicationsController {
   @UseGuards(RolesGuard)
   findAll() {
     return this.applicationsService.findAll();
+  }
+
+  @Get(':applicationId/offer-download-link')
+  @Roles(Role.CANDIDATE)
+  @UseGuards(RolesGuard)
+  getOfferDownloadLink(@Param('applicationId') applicationId: string, @Request() req: any) {
+    return this.offerLetterService.getDownloadLinkForCandidate(applicationId, req.user.userId);
   }
 
   @Get(':id')

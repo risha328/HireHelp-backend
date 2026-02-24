@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class EmailService {
@@ -17,7 +19,14 @@ export class EmailService {
     });
   }
 
-  private getEmailHeader(): string {
+  private getEmailHeader(includeLogo = true): string {
+    if (!includeLogo) {
+      return `
+      <div style="text-align: center; padding: 40px 20px; background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%); margin-bottom: 30px; border-radius: 8px 8px 0 0;">
+        <span style="color: white; font-size: 24px; font-weight: bold;">HireHelp</span>
+      </div>
+    `;
+    }
     return `
       <div style="text-align: center; padding: 40px 20px; background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%); margin-bottom: 30px; border-radius: 8px 8px 0 0;">
         <img src="cid:logo" alt="HireHelp Logo" style="max-width: 200px; height: auto;">
@@ -25,12 +34,27 @@ export class EmailService {
     `;
   }
 
-  private getCommonAttachments() {
-    return [{
-      filename: 'logo.png',
-      path: 'd:/Hirehelp/hirehelp-frontend/public/images/logo-transparent.png',
-      cid: 'logo'
-    }];
+  /** Returns logo attachment only if the file exists; otherwise empty so email still sends. */
+  private getCommonAttachments(): nodemailer.SendMailOptions['attachments'] {
+    const possiblePaths = [
+      'd:/Hirehelp/hirehelp-frontend/public/images/logo-transparent.png',
+      path.join(process.cwd(), 'public', 'images', 'logo-transparent.png'),
+      path.join(process.cwd(), '..', 'hirehelp-frontend', 'public', 'images', 'logo-transparent.png'),
+    ];
+    for (const logoPath of possiblePaths) {
+      try {
+        if (fs.existsSync(logoPath)) {
+          return [{
+            filename: 'logo.png',
+            path: logoPath,
+            cid: 'logo',
+          }];
+        }
+      } catch {
+        // continue
+      }
+    }
+    return [];
   }
 
   async sendShortlistEmail(candidateEmail: string, candidateName: string, jobTitle: string, companyName: string): Promise<void> {
@@ -111,6 +135,66 @@ export class EmailService {
       console.log(`Hire email sent to ${candidateEmail}`);
     } catch (error) {
       console.error('Error sending hire email:', error);
+      throw error;
+    }
+  }
+
+  async sendOfferLetterEmail(
+    candidateEmail: string,
+    candidateName: string,
+    jobTitle: string,
+    companyName: string,
+    offerLetterDownloadUrl: string,
+    offerLetterPdfBuffer?: Buffer,
+    attachmentFilename?: string,
+  ): Promise<void> {
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      const err = new Error(
+        'SMTP is not configured. Set SMTP_USER and SMTP_PASS in your .env to send offer letter emails.',
+      );
+      console.error(err.message);
+      throw err;
+    }
+    const commonAttachments = this.getCommonAttachments() ?? [];
+    const attachments: nodemailer.SendMailOptions['attachments'] = [...commonAttachments];
+    if (offerLetterPdfBuffer && offerLetterPdfBuffer.length > 0) {
+      const name = attachmentFilename && /\.pdf$/i.test(attachmentFilename)
+        ? attachmentFilename
+        : `Offer-Letter-${(companyName || 'Company').replace(/[^a-zA-Z0-9]/g, '-')}-${(jobTitle || 'Offer').replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+      attachments.push({
+        filename: name,
+        content: offerLetterPdfBuffer,
+        contentType: 'application/pdf',
+      });
+    }
+    const hasLogo = commonAttachments.length > 0;
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        ${this.getEmailHeader(hasLogo)}
+        <h2 style="color: #333;">Offer Letter – ${jobTitle}</h2>
+        <p>Dear ${candidateName},</p>
+        <p>Congratulations! <strong>${companyName}</strong> has extended an offer for the position of <strong>${jobTitle}</strong>.</p>
+        <p>Your offer letter is attached to this email. You can also download it with a single click using the button below:</p>
+        <p style="margin: 24px 0;">
+          <a href="${offerLetterDownloadUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">Download offer letter (PDF)</a>
+        </p>
+        <p>Please log in to your HireHelp candidate dashboard to accept or decline the offer.</p>
+        <p>Best regards,<br>The HireHelp Team</p>
+      </div>
+    `;
+    const mailOptions: nodemailer.SendMailOptions = {
+      from: process.env.SMTP_USER,
+      to: candidateEmail,
+      subject: `Offer letter for ${jobTitle} at ${companyName}`,
+      html: emailHtml,
+      attachments,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Offer letter email sent to ${candidateEmail}`);
+    } catch (error) {
+      console.error('Error sending offer letter email:', error);
       throw error;
     }
   }

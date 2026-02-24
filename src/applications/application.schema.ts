@@ -37,6 +37,32 @@ export class Application {
 
   @Prop({ type: Types.ObjectId, ref: 'Round' })
   currentRound?: Types.ObjectId;
+
+  /** Offer letter PDF URL (Cloudinary) after send */
+  @Prop()
+  offerLetterUrl?: string;
+
+  @Prop()
+  offerSentAt?: Date;
+
+  /** null = pending, true = accepted, false = declined */
+  @Prop({ type: Boolean, default: null })
+  offerAccepted?: boolean | null;
+
+  @Prop()
+  offerAcceptedAt?: Date;
+
+  @Prop({ type: Object })
+  offerDetails?: {
+    position?: string;
+    salary?: string;
+    startDate?: string;
+    expiryDate?: string;
+    terms?: string;
+    companyName?: string;
+    jobTitle?: string;
+    candidateName?: string;
+  };
 }
 
 export const ApplicationSchema = SchemaFactory.createForClass(Application);

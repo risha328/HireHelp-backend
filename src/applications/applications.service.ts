@@ -269,17 +269,8 @@ export class ApplicationsService {
         // Don't throw error to avoid breaking the status update
       }
     } else if (status === ApplicationStatus.HIRED) {
-      try {
-        await this.emailService.sendHireEmail(
-          (application.candidateId as any).email,
-          (application.candidateId as any).name,
-          (application.jobId as any).title,
-          (application.companyId as any).name,
-        );
-      } catch (error) {
-        console.error('Failed to send hire email:', error);
-        // Don't throw error to avoid breaking the status update
-      }
+      // Do not send generic hire email here; offer letter email is sent when company clicks "Send Offer"
+      // (via OfferLetterService.sendOffer). That is the single touchpoint for the candidate.
     } else if (status === ApplicationStatus.HOLD) {
       try {
         await this.emailService.sendHoldEmail(
