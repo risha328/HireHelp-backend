@@ -12,6 +12,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { RoundsModule } from './rounds/rounds.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { OfferLettersModule } from './offer-letters/offer-letters.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
     ApplicationsModule,
     AnalyticsModule,
     RoundsModule,
+    OfferLettersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

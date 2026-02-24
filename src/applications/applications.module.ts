@@ -5,12 +5,14 @@ import { ApplicationsController } from './applications.controller';
 import { Application, ApplicationSchema } from './application.schema';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { RoundsModule } from '../rounds/rounds.module';
+import { OfferLettersModule } from '../offer-letters/offer-letters.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Application.name, schema: ApplicationSchema }]),
     NotificationsModule,
     forwardRef(() => RoundsModule),
+    forwardRef(() => OfferLettersModule),
   ],
   controllers: [ApplicationsController],
   providers: [ApplicationsService],
