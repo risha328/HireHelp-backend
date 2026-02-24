@@ -35,6 +35,12 @@ export class Company {
   @Prop()
   contactPhone?: string;
 
+  @Prop()
+  hrContactName?: string;
+
+  @Prop()
+  hrDesignation?: string;
+
   @Prop({ default: 'pending' })
   verificationStatus: string; // 'pending', 'verified', 'rejected'
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request, UseInterceptors, UploadedFiles, ForbiddenException } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { ApplicationsService } from './applications.service';
@@ -67,6 +67,15 @@ export class ApplicationsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.applicationsService.findOne(id);
+  }
+
+  @Post(':id/convert-to-employee')
+  @Roles(Role.COMPANY_ADMIN)
+  @UseGuards(RolesGuard)
+  convertToEmployee(@Param('id') id: string, @Request() req: any) {
+    const companyId = req.user?.companyId?.toString?.() || req.user?.companyId;
+    if (!companyId) throw new ForbiddenException('Company not found for user');
+    return this.applicationsService.convertToEmployee(id, companyId);
   }
 
   @Patch(':id/status')
