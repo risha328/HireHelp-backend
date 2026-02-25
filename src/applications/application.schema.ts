@@ -74,8 +74,15 @@ export class Application {
   @Prop({ default: 'pending' })
   documentStatus?: 'pending' | 'completed';
 
-  @Prop({ default: 'pending' })
+  /** Background verification: NOT_INITIATED | IN_PROGRESS | VERIFIED | FAILED */
+  @Prop({ default: 'NOT_INITIATED' })
   backgroundVerificationStatus?: string;
+
+  @Prop()
+  backgroundVerificationNotes?: string;
+
+  @Prop()
+  backgroundVerificationFailedReason?: string;
 
   @Prop({ default: false })
   convertedToEmployee?: boolean;

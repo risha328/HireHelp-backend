@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException,
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Application, ApplicationDocument, ApplicationStatus } from './application.schema';
+import { OnboardingService } from './onboarding.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { EmailService } from '../notifications/email.service';
 import { RoundsService } from '../rounds/rounds.service';
@@ -16,6 +17,7 @@ export class ApplicationsService {
     @Inject(forwardRef(() => RoundsService))
     private roundsService: RoundsService,
     private cloudinaryService: CloudinaryService,
+    private onboardingService: OnboardingService,
   ) { }
 
   async create(
@@ -70,7 +72,7 @@ export class ApplicationsService {
     return application;
   }
 
-  async findByCompany(companyId: string): Promise<Application[]> {
+  async findByCompany(companyId: string): Promise<(Application & { onboardingPhase?: string })[]> {
     console.log('findByCompany called with companyId:', companyId);
     const applications = await this.applicationModel
       .find({ companyId })
@@ -86,7 +88,10 @@ export class ApplicationsService {
       .populate('companyId', 'name')
       .exec();
     console.log('findByCompany found applications:', applications.length);
-    return applications;
+    return applications.map((app) => {
+      const obj = app.toObject ? app.toObject() : app;
+      return { ...obj, onboardingPhase: this.onboardingService.getOnboardingPhase(app) };
+    });
   }
 
   async findByCandidate(candidateId: string): Promise<Application[]> {
@@ -114,7 +119,7 @@ export class ApplicationsService {
     return application;
   }
 
-  async findOne(id: string): Promise<Application> {
+  async findOne(id: string): Promise<Application & { onboardingPhase?: string }> {
     const application = await this.applicationModel
       .findById(id)
       .populate('candidateId', 'name email phone')
@@ -124,7 +129,8 @@ export class ApplicationsService {
     if (!application) {
       throw new NotFoundException('Application not found');
     }
-    return application;
+    const obj = application.toObject ? application.toObject() : application;
+    return { ...obj, onboardingPhase: this.onboardingService.getOnboardingPhase(application) } as Application & { onboardingPhase?: string };
   }
 
   async findAll(): Promise<Application[]> {
@@ -390,11 +396,14 @@ export class ApplicationsService {
     }
     (application as any).convertedToEmployee = true;
     await application.save();
-    return this.applicationModel
+    await this.onboardingService.recomputeOnboardingProgress(applicationId);
+    const updated = await this.applicationModel
       .findById(applicationId)
       .populate('candidateId', 'name email phone')
       .populate('jobId', 'title')
       .populate('companyId', 'name')
-      .exec() as Promise<Application>;
+      .exec();
+    const obj = updated?.toObject ? updated.toObject() : updated;
+    return { ...obj, onboardingPhase: this.onboardingService.getOnboardingPhase(updated!) } as unknown as Application;
   }
 }
