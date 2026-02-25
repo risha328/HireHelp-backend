@@ -6,8 +6,10 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { Inject, forwardRef } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { Application, ApplicationDocument, ApplicationStatus } from '../applications/application.schema';
+import { OnboardingService } from '../applications/onboarding.service';
 import { CreateOfferDto } from './dto/create-offer.dto';
 import { OfferPreviewData } from './dto/create-offer.dto';
 import { PdfGeneratorService, OfferPdfPayload } from './pdf-generator.service';
@@ -23,6 +25,8 @@ export class OfferLetterService {
     private pdfGeneratorService: PdfGeneratorService,
     private cloudinaryService: CloudinaryService,
     private emailService: EmailService,
+    @Inject(forwardRef(() => OnboardingService))
+    private onboardingService: OnboardingService,
   ) {}
 
   /** Create a signed token for public offer letter download (no login required). */
@@ -274,7 +278,16 @@ export class OfferLetterService {
 
     (application as any).offerAccepted = true;
     (application as any).offerAcceptedAt = new Date();
+    (application as any).backgroundVerificationStatus = 'NOT_INITIATED';
     await application.save();
+
+    try {
+      await this.onboardingService.createDefaultChecklist(applicationId);
+      await this.onboardingService.recomputeOnboardingProgress(applicationId);
+    } catch (err) {
+      console.error('Onboarding checklist creation failed after offer accept:', err);
+      // Don't fail the accept flow; progress may be 0 until checklist exists
+    }
 
     return this.applicationModel
       .findById(applicationId)

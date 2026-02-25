@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Application, ApplicationSchema } from '../applications/application.schema';
+import { ApplicationsModule } from '../applications/applications.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { OfferLetterController } from './offer-letter.controller';
@@ -13,6 +14,7 @@ import { PdfGeneratorService } from './pdf-generator.service';
     MongooseModule.forFeature([{ name: Application.name, schema: ApplicationSchema }]),
     CloudinaryModule,
     NotificationsModule,
+    forwardRef(() => ApplicationsModule),
   ],
   controllers: [OfferLetterController, OfferLetterDownloadController],
   providers: [PdfGeneratorService, OfferLetterService],
