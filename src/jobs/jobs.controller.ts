@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, Req } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -50,8 +50,12 @@ export class JobsController {
   @Get('company/:companyId')
   @ApiOperation({ summary: 'Get jobs by company ID' })
   @ApiResponse({ status: 200, description: 'Jobs retrieved successfully' })
-  findByCompany(@Param('companyId') companyId: string) {
-    return this.jobsService.findByCompany(companyId);
+  findByCompany(
+    @Param('companyId') companyId: string,
+    @Query('publishedOnly') publishedOnly?: string,
+  ) {
+    const includeScheduled = publishedOnly === 'false';
+    return this.jobsService.findByCompany(companyId, includeScheduled);
   }
 
   @Get(':id')
