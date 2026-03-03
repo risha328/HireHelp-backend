@@ -109,8 +109,15 @@ export class JobsService {
     return { data: data as Job[], total, page, limit, totalPages };
   }
 
-  async findByCompany(companyId: string): Promise<Job[]> {
-    return this.jobModel.find({ companyId, status: 'active' }).sort({ createdAt: -1 }).exec();
+  async findByCompany(companyId: string, includeScheduled = false): Promise<Job[]> {
+    const query: Record<string, unknown> = { companyId, status: 'active' };
+    if (!includeScheduled) {
+      query.$or = [
+        { scheduledPublishAt: { $lte: new Date() } },
+        { scheduledPublishAt: { $exists: false } },
+      ];
+    }
+    return this.jobModel.find(query).sort({ createdAt: -1 }).exec();
   }
 
   async findOne(id: string): Promise<Job | null> {
@@ -123,8 +130,9 @@ export class JobsService {
       throw new NotFoundException(`Job with ID ${id} not found`);
     }
 
-    // Restriction: Cannot edit if already published
-    if (job.status === 'active' && job.scheduledPublishAt <= new Date()) {
+    // Restriction: Cannot edit if already published (scheduledPublishAt in the past or not set)
+    const publishTime = job.scheduledPublishAt ? new Date(job.scheduledPublishAt) : new Date(0);
+    if (job.status === 'active' && publishTime <= new Date()) {
       throw new ForbiddenException('Published jobs cannot be edited to maintain consistency for applicants');
     }
 
