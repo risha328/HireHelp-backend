@@ -421,7 +421,7 @@ export class EmailService {
           <ul style="line-height: 1.8;">
             <li>• The coding test will be conducted online.</li>
             <li>• The test link will be shared with you separately.</li>
-            <li>• The duration of the test will be <strong>${duration || 'TBD'}</strong> minutes.</li>
+            <li>• The duration of the test will be <strong>${duration || 'TBD'}</strong>.</li>
             <li>• You are required to solve the given problem(s) within the allotted time.</li>
             <li>• Any form of plagiarism or unfair practices may lead to disqualification.</li>
             <li>• Ensure a stable internet connection during the test.</li>
@@ -489,6 +489,97 @@ export class EmailService {
     } catch (error) {
       console.error('Error sending MCQ rejection email:', error);
       // Don't throw to prevent blocking
+    }
+  }
+
+  /**
+   * Offline Coding Test Invitation Email
+   * Subject: Invitation for Offline Coding Test – [Company Name]
+   */
+  async sendOfflineCodingTestEmail(
+    candidateEmail: string,
+    candidateName: string,
+    jobTitle: string,
+    companyName: string,
+    testDate: string,
+    reportingTime: string,
+    startTime: string,
+    duration: string,
+    venueName: string,
+    addressLine1: string,
+    addressLine2: string,
+    cityStatePin: string,
+    contactEmail?: string,
+  ): Promise<void> {
+    const safeCompanyName = companyName || 'Company';
+    const contactLine = contactEmail || 'hirehelp23@gmail.com';
+
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; color: #111827; line-height: 1.6; background-color: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb;">
+        ${this.getEmailHeader(true)}
+        <div style="padding: 0 4px 8px 4px;">
+          <p style="margin: 0 0 12px 0;">Dear <strong>${candidateName}</strong>,</p>
+          <p style="margin: 0 0 12px 0;">
+            We are pleased to inform you that you have been shortlisted for the next stage of the selection process for the position of
+            <strong>${jobTitle}</strong> at <strong>${safeCompanyName}</strong>.
+          </p>
+          <p style="margin: 0 0 16px 0;">
+            You are invited to attend an <strong>offline coding test</strong> as per the details below:
+          </p>
+
+          <h3 style="margin: 20px 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280;">Test Details</h3>
+          <div style="background-color: #f9fafb; border-radius: 10px; padding: 14px 16px; border: 1px solid #e5e7eb;">
+            <p style="margin: 4px 0;"><strong>Date:</strong> ${testDate || 'To be communicated'}</p>
+            <p style="margin: 4px 0;"><strong>Reporting Time:</strong> ${reportingTime || 'Please report 15 minutes before the test start time'}</p>
+            <p style="margin: 4px 0;"><strong>Test Start Time:</strong> ${startTime || 'To be communicated'}</p>
+            <p style="margin: 4px 0;"><strong>Duration:</strong> ${duration || 'As communicated by the recruiter'}</p>
+            <p style="margin: 10px 0 4px 0;"><strong>Venue:</strong></p>
+            <p style="margin: 2px 0;">${venueName || safeCompanyName}</p>
+            ${addressLine1 ? `<p style="margin: 2px 0;">${addressLine1}</p>` : ''}
+            ${addressLine2 ? `<p style="margin: 2px 0;">${addressLine2}</p>` : ''}
+            ${cityStatePin ? `<p style="margin: 2px 0;">${cityStatePin}</p>` : ''}
+          </div>
+
+          <h3 style="margin: 20px 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280;">Test Instructions</h3>
+          <ul style="margin: 0 0 12px 18px; padding: 0; color: #374151;">
+            <li style="margin-bottom: 6px;">Please carry a valid government-issued photo ID for verification.</li>
+            <li style="margin-bottom: 6px;">Bring your own laptop (if applicable) and ensure it is fully charged.</li>
+            <li style="margin-bottom: 6px;">Internet access may / may not be provided at the venue as per the company’s policy.</li>
+            <li style="margin-bottom: 6px;">No external reference materials will be allowed unless specifically mentioned by the recruiter.</li>
+            <li style="margin-bottom: 6px;">Kindly ensure that you arrive at least <strong>15 minutes before</strong> the reporting time.</li>
+          </ul>
+
+          <p style="margin: 0 0 12px 0;">
+            If you are unable to attend on the scheduled date, please inform us at the earliest by replying to this email.
+          </p>
+
+          <p style="margin: 0 0 20px 0;">
+            We look forward to your participation and wish you the very best.
+          </p>
+
+          <p style="margin: 0;">
+            Best regards,<br/>
+            <strong>${safeCompanyName}</strong><br/>
+            <span>${contactLine}</span>
+          </p>
+        </div>
+      </div>
+    `;
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: candidateEmail,
+      subject: `Invitation for Offline Coding Test – ${safeCompanyName}`,
+      html: emailHtml,
+      attachments: this.getCommonAttachments(),
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Offline coding test email sent to ${candidateEmail}`);
+    } catch (error) {
+      console.error('Error sending offline coding test email:', error);
+      throw error;
     }
   }
 

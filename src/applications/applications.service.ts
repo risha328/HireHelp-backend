@@ -190,31 +190,88 @@ export class ApplicationsService {
             duration: newRoundObj.duration,
             instructions: newRoundObj.instructions,
             scheduledAt: newRoundObj.scheduledAt,
-            interviewMode: newRoundObj.interviewMode
+            interviewMode: newRoundObj.interviewMode,
+            scheduling: newRoundObj.scheduling,
+            locationDetails: newRoundObj.locationDetails,
           });
 
           if (newRoundObj.type === RoundType.CODING) {
-            console.log('✓ Round type is CODING - sending email...');
-            console.log('Email details:', {
-              to: (application.candidateId as any).email,
-              candidateName: (application.candidateId as any).name,
-              jobTitle: (application.jobId as any).title,
-              companyName: (application.companyId as any).name,
-              platform: newRoundObj.platform || '',
-              duration: newRoundObj.duration || '',
-              instructions: newRoundObj.instructions || ''
-            });
+            console.log('✓ Round type is CODING - determining mode for email...');
 
-            await this.emailService.sendCodingTestEmail(
-              (application.candidateId as any).email,
-              (application.candidateId as any).name,
-              (application.jobId as any).title,
-              (application.companyId as any).name,
-              newRoundObj.platform || '',
-              newRoundObj.duration || '',
-              newRoundObj.instructions || ''
-            );
-            console.log('✓ Coding test email sent successfully!');
+            const candidateEmail = (application.candidateId as any).email;
+            const candidateName = (application.candidateId as any).name;
+            const jobTitle = (application.jobId as any).title;
+            const companyName = (application.companyId as any).name;
+
+            const isOfflineCoding = (newRoundObj.interviewMode || '').toLowerCase() === 'offline';
+
+            if (isOfflineCoding) {
+              const sched = (newRoundObj as any).scheduling || {};
+              const loc = (newRoundObj as any).locationDetails || {};
+
+              const testDate = sched.interviewDate || '';
+              const reportingTime = sched.reportingTime || '';
+              const startTime = sched.interviewTime || '';
+              const duration = newRoundObj.duration || '';
+              const venueName = loc.venueName || companyName;
+              const addressLine1 = loc.address || '';
+              const addressLine2 = loc.landmark || '';
+              const cityStatePin = loc.city || '';
+
+              console.log('✓ Sending OFFLINE coding test email with details:', {
+                to: candidateEmail,
+                candidateName,
+                jobTitle,
+                companyName,
+                testDate,
+                reportingTime,
+                startTime,
+                duration,
+                venueName,
+                addressLine1,
+                addressLine2,
+                cityStatePin,
+              });
+
+              await this.emailService.sendOfflineCodingTestEmail(
+                candidateEmail,
+                candidateName,
+                jobTitle,
+                companyName,
+                testDate,
+                reportingTime,
+                startTime,
+                duration,
+                venueName,
+                addressLine1,
+                addressLine2,
+                cityStatePin,
+                (application.companyId as any).contactEmail,
+              );
+              console.log('✓ Offline coding test email sent successfully!');
+            } else {
+              console.log('✓ Sending ONLINE coding test email...');
+              console.log('Email details:', {
+                to: candidateEmail,
+                candidateName,
+                jobTitle,
+                companyName,
+                platform: newRoundObj.platform || '',
+                duration: newRoundObj.duration || '',
+                instructions: newRoundObj.instructions || ''
+              });
+
+              await this.emailService.sendCodingTestEmail(
+                candidateEmail,
+                candidateName,
+                jobTitle,
+                companyName,
+                newRoundObj.platform || '',
+                newRoundObj.duration || '',
+                newRoundObj.instructions || ''
+              );
+              console.log('✓ Coding test email sent successfully!');
+            }
           } else if (newRoundObj.type === RoundType.INTERVIEW || newRoundObj.type === RoundType.TECHNICAL || newRoundObj.type === RoundType.HR) {
             // Do not email candidate when just moving to interview round. Emails are sent only when interview is scheduled (assignInterviewer in rounds.service).
             console.log('✓ Round type is interview (INTERVIEW/TECHNICAL/HR) - skipping early notification; candidate will be notified when interview is scheduled.');
