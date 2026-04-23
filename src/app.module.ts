@@ -13,6 +13,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { RoundsModule } from './rounds/rounds.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { OfferLettersModule } from './offer-letters/offer-letters.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { OfferLettersModule } from './offer-letters/offer-letters.module';
     AnalyticsModule,
     RoundsModule,
     OfferLettersModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],
