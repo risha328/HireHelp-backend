@@ -10,6 +10,11 @@ export enum RoundType {
   TECHNICAL = 'technical',
   HR = 'hr',
 }
+
+export enum MCQMode {
+  INTERNAL = 'INTERNAL',
+  EXTERNAL = 'EXTERNAL',
+}
 // Schema for Round entity
 @Schema()
 export class MCQQuestion {
@@ -42,8 +47,17 @@ export class Round {
   @Prop({ enum: RoundType, default: RoundType.INTERVIEW })
   type: RoundType;
 
+  @Prop({ enum: MCQMode })
+  mode?: MCQMode;
+
+  @Prop({ type: Types.ObjectId, ref: 'QuestionSet' })
+  questionSetId?: Types.ObjectId;
+
   @Prop()
   googleFormLink?: string;
+
+  @Prop()
+  externalLink?: string;
 
   @Prop()
   googleSheetLink?: string;
@@ -53,6 +67,22 @@ export class Round {
 
   @Prop()
   duration?: string; // e.g. "60 Mins"
+
+  @Prop({ min: 1 })
+  durationMinutes?: number;
+
+  @Prop({ default: true })
+  autoSubmit?: boolean;
+
+  @Prop({ min: 0, max: 100, default: 60 })
+  passPercentage?: number;
+
+  @Prop({ type: Object })
+  difficultyDistribution?: {
+    easy?: number;
+    medium?: number;
+    hard?: number;
+  };
 
   @Prop()
   instructions?: string; // Specific instructions for the round

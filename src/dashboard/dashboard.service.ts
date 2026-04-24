@@ -140,6 +140,7 @@ export class DashboardService {
         populate: { path: 'companyId', select: 'name logoUrl' },
       })
       .populate('companyId', 'name')
+      .populate('currentRound', 'name type mode externalLink durationMinutes')
       .sort({ createdAt: -1 })
       .exec();
 
