@@ -1,7 +1,7 @@
-import { IsString, IsOptional, IsNumber, IsMongoId, IsEnum, IsUrl, IsArray, ValidateIf, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsMongoId, IsEnum, IsUrl, IsArray, ValidateIf, Min, Max, IsBoolean } from 'class-validator';
 import { ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { RoundType, MCQQuestion } from '../round.schema';
+import { RoundType, MCQQuestion, MCQMode } from '../round.schema';
 
 export class LocationDetailsDto {
   @IsString()
@@ -50,9 +50,22 @@ export class CreateRoundDto {
   type?: RoundType;
 
   @IsOptional()
+  @IsEnum(MCQMode)
+  mode?: MCQMode;
+
+  @IsOptional()
+  @IsMongoId()
+  questionSetId?: string;
+
+  @IsOptional()
   @ValidateIf((o) => o.googleFormLink && o.googleFormLink !== '')
   @IsUrl()
   googleFormLink?: string;
+
+  @IsOptional()
+  @ValidateIf((o) => o.externalLink && o.externalLink !== '')
+  @IsUrl()
+  externalLink?: string;
 
   @IsOptional()
   @ValidateIf((o) => o.googleSheetLink && o.googleSheetLink !== '')
@@ -66,6 +79,28 @@ export class CreateRoundDto {
   @IsOptional()
   @IsString()
   duration?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  durationMinutes?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  autoSubmit?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  passPercentage?: number;
+
+  @IsOptional()
+  difficultyDistribution?: {
+    easy?: number;
+    medium?: number;
+    hard?: number;
+  };
 
   @IsOptional()
   @IsString()

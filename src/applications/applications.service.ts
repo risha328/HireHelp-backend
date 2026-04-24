@@ -106,6 +106,7 @@ export class ApplicationsService {
         }
       })
       .populate('companyId', 'name')
+      .populate('currentRound', 'name type mode externalLink durationMinutes')
       .exec();
   }
 
@@ -125,6 +126,7 @@ export class ApplicationsService {
       .populate('candidateId', 'name email phone')
       .populate('jobId', 'title')
       .populate('companyId', 'name')
+      .populate('currentRound', 'name type mode externalLink durationMinutes')
       .exec();
     if (!application) {
       throw new NotFoundException('Application not found');
