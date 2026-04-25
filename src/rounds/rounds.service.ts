@@ -87,15 +87,15 @@ export class RoundsService {
     candidateId: string,
   ): Promise<ExamSessionDocument | null> {
     let session = await this.examSessionModel.findOne({
-      roundId,
-      applicationId,
-      candidateId,
+      roundId: new Types.ObjectId(roundId),
+      applicationId: new Types.ObjectId(applicationId),
+      candidateId: new Types.ObjectId(candidateId),
     }).sort({ createdAt: -1 }).exec();
 
     if (!session) {
       session = await this.examSessionModel.findOne({
-        roundId,
-        applicationId,
+        roundId: new Types.ObjectId(roundId),
+        applicationId: new Types.ObjectId(applicationId),
       }).sort({ createdAt: -1 }).exec();
 
       if (session && session.candidateId?.toString() !== candidateId) {
@@ -652,7 +652,7 @@ export class RoundsService {
 
   async getMcqStatus(roundId: string, applicationId: string): Promise<{ submitted: boolean; score?: number }> {
     const latestSession = await this.examSessionModel
-      .findOne({ roundId, applicationId })
+      .findOne({ roundId: new Types.ObjectId(roundId), applicationId: new Types.ObjectId(applicationId) })
       .sort({ createdAt: -1 })
       .exec();
 
@@ -668,13 +668,13 @@ export class RoundsService {
       return { submitted: true, score: latestSession.score };
     }
 
-    const response = await this.mcqResponseModel.findOne({ roundId, applicationId }).exec();
+    const response = await this.mcqResponseModel.findOne({ roundId: new Types.ObjectId(roundId), applicationId: new Types.ObjectId(applicationId) }).exec();
     return { submitted: true, score: response?.score };
   }
 
   async getMcqStatusByApplication(applicationId: string): Promise<{ submitted: boolean; score?: number }> {
     const latestSession = await this.examSessionModel
-      .findOne({ applicationId })
+      .findOne({ applicationId: new Types.ObjectId(applicationId) })
       .sort({ submittedAt: -1, createdAt: -1 })
       .exec();
 
@@ -689,7 +689,7 @@ export class RoundsService {
       return { submitted: true };
     }
 
-    const response = await this.mcqResponseModel.findOne({ applicationId }).sort({ submittedAt: -1, createdAt: -1 }).exec();
+    const response = await this.mcqResponseModel.findOne({ applicationId: new Types.ObjectId(applicationId) }).sort({ submittedAt: -1, createdAt: -1 }).exec();
     if (!response) {
       return { submitted: false };
     }
@@ -1429,6 +1429,7 @@ export class RoundsService {
       throw new BadRequestException('Invalid question index');
     }
     session.answers[questionIndex] = answer;
+    session.markModified('answers');
     return session.save();
   }
 
@@ -1452,6 +1453,8 @@ export class RoundsService {
         const score = existingSubmitted.score ?? 0;
         return {
           score,
+          correctAnswersCount: existingSubmitted.correctAnswersCount,
+          totalQuestions: existingSubmitted.totalQuestions,
           passed: score >= passPercentage,
           passPercentage,
           timeoutSubmit: existingSubmitted.status === ExamSessionStatus.TIMEOUT_SUBMITTED,
@@ -1470,6 +1473,8 @@ export class RoundsService {
         const score = session.score ?? 0;
         return {
           score,
+          correctAnswersCount: session.correctAnswersCount,
+          totalQuestions: session.totalQuestions,
           passed: score >= passPercentage,
           passPercentage,
           timeoutSubmit: restartedStatus === ExamSessionStatus.TIMEOUT_SUBMITTED,
@@ -1515,11 +1520,17 @@ export class RoundsService {
 
     session.status = timeoutSubmit ? ExamSessionStatus.TIMEOUT_SUBMITTED : ExamSessionStatus.SUBMITTED;
     session.score = score;
+    session.correctAnswersCount = correctCount;
+    session.totalQuestions = totalQuestions;
     session.submittedAt = new Date();
     await session.save();
 
     await this.mcqResponseModel.findOneAndUpdate(
-      { roundId, applicationId, candidateId },
+      { 
+        roundId: new Types.ObjectId(roundId), 
+        applicationId: new Types.ObjectId(applicationId), 
+        candidateId: new Types.ObjectId(candidateId) 
+      },
       {
         roundId: new Types.ObjectId(roundId),
         applicationId: new Types.ObjectId(applicationId),
@@ -1527,6 +1538,8 @@ export class RoundsService {
         answers: session.answers,
         isCorrect,
         score,
+        correctAnswersCount: correctCount,
+        totalQuestions: totalQuestions,
         isSubmitted: true,
         submittedAt: new Date(),
       },
@@ -1555,7 +1568,7 @@ export class RoundsService {
       score,
     });
 
-    return { score, passed, passPercentage, timeoutSubmit };
+    return { score, correctAnswersCount: correctCount, totalQuestions, passed, passPercentage, timeoutSubmit };
   }
 
   async getExamSession(roundId: string, applicationId: string, candidateId: string): Promise<ExamSession | null> {

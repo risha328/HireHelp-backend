@@ -38,6 +38,12 @@ export class ExamSession {
   @Prop({ min: 0, max: 100 })
   score?: number;
 
+  @Prop()
+  correctAnswersCount?: number;
+
+  @Prop()
+  totalQuestions?: number;
+
   @Prop({ type: Date })
   submittedAt?: Date;
 }

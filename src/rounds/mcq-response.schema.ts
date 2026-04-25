@@ -23,6 +23,12 @@ export class MCQResponse {
   @Prop({ min: 0, max: 100 })
   score?: number; // Total score percentage
 
+  @Prop()
+  correctAnswersCount?: number;
+
+  @Prop()
+  totalQuestions?: number;
+
   @Prop({ default: false })
   isSubmitted: boolean;
 
