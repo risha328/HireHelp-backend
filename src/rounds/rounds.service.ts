@@ -482,7 +482,7 @@ export class RoundsService {
     return await mcqResponse.save();
   }
 
-  async getMcqResponses(roundId: string): Promise<MCQResponse[]> {
+  async getMcqResponses(roundId: string): Promise<any[]> {
     const responses = await this.mcqResponseModel
       .find({ roundId, isSubmitted: true })
       .populate({
@@ -494,13 +494,6 @@ export class RoundsService {
       })
       .exec();
 
-    const existingApplicationIds = new Set(
-      responses
-        .map((r: any) => ((r.applicationId as any)?._id?.toString?.() || r.applicationId?.toString?.()))
-        .filter(Boolean),
-    );
-
-    // Also fetch evaluations for this round to capture synced scores from external sources
     const evaluations = await this.roundEvaluationModel
       .find({
         roundId,
@@ -515,35 +508,10 @@ export class RoundsService {
       })
       .exec();
 
-    const evaluationsAsResponses = evaluations
-      .filter((ev: any) => {
-        const appId = (ev.applicationId as any)?._id?.toString?.() || ev.applicationId?.toString?.();
-        return appId && !existingApplicationIds.has(appId);
-      })
-      .map((ev: any) => ({
-        _id: `eval-${ev._id}`,
-        roundId: ev.roundId,
-        applicationId: ev.applicationId,
-        score: ev.score,
-        isSubmitted: true,
-        submittedAt: ev.completedAt || ev.updatedAt,
-        createdAt: ev.createdAt,
-        updatedAt: ev.updatedAt,
-        source: 'evaluation',
-      }));
-
-    evaluationsAsResponses.forEach((r: any) => {
-      const appId = (r.applicationId as any)?._id?.toString?.() || r.applicationId?.toString?.();
-      if (appId) existingApplicationIds.add(appId);
-    });
-
     const submittedSessions = await this.examSessionModel
       .find({
         roundId,
-        $or: [
-          { status: { $in: [ExamSessionStatus.SUBMITTED, ExamSessionStatus.TIMEOUT_SUBMITTED] } },
-          { submittedAt: { $exists: true, $ne: null } },
-        ],
+        status: ExamSessionStatus.SUBMITTED,
       })
       .sort({ submittedAt: -1, createdAt: -1 })
       .populate({
@@ -556,6 +524,43 @@ export class RoundsService {
       .exec();
 
     const round = await this.roundModel.findById(roundId).exec();
+    const roundObjectId = Types.ObjectId.isValid(roundId) ? new Types.ObjectId(roundId) : null;
+
+    const getSubmittedSessionStats = async (applicationIdValue: any): Promise<{ attemptCount: number; timeTakenMs: number }> => {
+      const appId = applicationIdValue?._id?.toString?.() || applicationIdValue?.toString?.();
+      if (!appId || !Types.ObjectId.isValid(appId) || !roundObjectId) {
+        return { attemptCount: 0, timeTakenMs: 0 };
+      }
+
+      const submittedOnly = await this.examSessionModel
+        .find({
+          roundId: roundObjectId,
+          applicationId: new Types.ObjectId(appId),
+          status: ExamSessionStatus.SUBMITTED,
+        })
+        .sort({ submittedAt: -1, createdAt: -1 })
+        .select('startTime endTime')
+        .exec();
+
+      const attemptCount = submittedOnly.length;
+      const latest = submittedOnly[0];
+      const timeTakenMs =
+        latest?.startTime && latest?.endTime
+          ? new Date(latest.endTime).getTime() - new Date(latest.startTime).getTime()
+          : 0;
+
+      return { attemptCount, timeTakenMs };
+    };
+
+    const sessionsByApp = new Map<string, any[]>();
+    for (const session of submittedSessions) {
+      const appId = (session.applicationId as any)?._id?.toString() || session.applicationId?.toString();
+      if (appId) {
+        if (!sessionsByApp.has(appId)) sessionsByApp.set(appId, []);
+        sessionsByApp.get(appId)?.push(session);
+      }
+    }
+
     const uniqueQuestionIds = Array.from(
       new Set(
         submittedSessions
@@ -573,39 +578,87 @@ export class RoundsService {
       (round?.mcqQuestions || []).map((q, idx) => [new Types.ObjectId(`${idx + 1}`.padStart(24, '0')).toString(), q.correctAnswer]),
     );
 
-    const syntheticResponses = submittedSessions
-      .filter((session: any) => {
-        const appId = (session.applicationId as any)?._id?.toString?.() || session.applicationId?.toString?.();
-        if (!appId) return true;
-        return !existingApplicationIds.has(appId);
-      })
-      .map((session: any) => {
-        const isCorrect = (session.questionOrder || []).map((qid: any, idx: number) => {
-          const qidStr = qid.toString();
-          const correctAnswer = bankQuestionMap.get(qidStr) ?? inlineQuestionMap.get(qidStr);
-          const selected = session.answers?.[idx];
-          return typeof correctAnswer === 'number' && selected >= 0 && selected === correctAnswer;
-        });
-        const correctCount = isCorrect.filter(Boolean).length;
-        const total = (session.questionOrder || []).length || (session.answers || []).length || 0;
-        const computedScore = total ? (correctCount / total) * 100 : 0;
+    const processedAppIds = new Set<string>();
+    const finalResponses: any[] = [];
 
-        return {
-          _id: `session-${session._id}`,
-          roundId: { _id: roundId, name: round?.name, googleFormLink: round?.googleFormLink },
-          applicationId: session.applicationId,
-          candidateId: session.candidateId,
-          answers: session.answers || [],
-          isCorrect,
-          score: typeof session.score === 'number' ? session.score : computedScore,
-          isSubmitted: true,
-          submittedAt: session.submittedAt || session.updatedAt,
-          createdAt: session.createdAt,
-          updatedAt: session.updatedAt,
-        } as any;
+    for (const res of responses) {
+      const appId = (res.applicationId as any)?._id?.toString() || res.applicationId?.toString();
+      if (!appId || processedAppIds.has(appId)) continue;
+      
+      const { attemptCount, timeTakenMs } = await getSubmittedSessionStats(res.applicationId);
+
+      const resObj = typeof (res as any).toObject === 'function' ? (res as any).toObject() : res;
+
+      finalResponses.push({
+        ...resObj,
+        attemptCount,
+        timeTakenMs,
       });
+      processedAppIds.add(appId);
+    }
 
-    return [...responses, ...evaluationsAsResponses, ...syntheticResponses].sort((a: any, b: any) => {
+    for (const ev of evaluations) {
+      const appId = (ev.applicationId as any)?._id?.toString() || ev.applicationId?.toString();
+      if (!appId || processedAppIds.has(appId)) continue;
+
+      const { attemptCount, timeTakenMs } = await getSubmittedSessionStats(ev.applicationId);
+
+      finalResponses.push({
+        _id: `eval-${ev._id}`,
+        roundId: ev.roundId,
+        applicationId: ev.applicationId,
+        candidateId: (ev.applicationId as any)?.candidateId,
+        score: ev.score,
+        isSubmitted: true,
+        submittedAt: ev.completedAt || (ev as any).updatedAt,
+        createdAt: (ev as any).createdAt,
+        updatedAt: (ev as any).updatedAt,
+        source: 'evaluation',
+        attemptCount,
+        timeTakenMs,
+      });
+      processedAppIds.add(appId);
+    }
+
+    for (const session of submittedSessions) {
+      const appId = (session.applicationId as any)?._id?.toString() || session.applicationId?.toString();
+      if (!appId || processedAppIds.has(appId)) continue;
+
+      const { attemptCount, timeTakenMs } = await getSubmittedSessionStats(session.applicationId);
+
+      const isCorrect = (session.questionOrder || []).map((qid: any, idx: number) => {
+        const qidStr = qid.toString();
+        const correctAnswer = bankQuestionMap.get(qidStr) ?? inlineQuestionMap.get(qidStr);
+        const selected = session.answers?.[idx];
+        return typeof correctAnswer === 'number' && selected >= 0 && selected === correctAnswer;
+      });
+      const correctCount = isCorrect.filter(Boolean).length;
+      const total = (session.questionOrder || []).length || (session.answers || []).length || 0;
+      const computedScore = total ? (correctCount / total) * 100 : 0;
+
+      finalResponses.push({
+        _id: `session-${session._id}`,
+        roundId: { _id: roundId, name: round?.name, googleFormLink: round?.googleFormLink },
+        applicationId: session.applicationId,
+        candidateId: session.candidateId,
+        answers: session.answers || [],
+        isCorrect,
+        score: typeof session.score === 'number' ? session.score : computedScore,
+        correctAnswersCount: session.correctAnswersCount || correctCount,
+        totalQuestions: session.totalQuestions || total,
+        isSubmitted: true,
+        submittedAt: session.submittedAt || (session as any).updatedAt,
+        createdAt: (session as any).createdAt,
+        updatedAt: (session as any).updatedAt,
+        attemptCount,
+        timeTakenMs,
+      });
+      processedAppIds.add(appId);
+    }
+
+    console.log('finalResponses durations:', finalResponses.map(r => ({ appId: (r.applicationId as any)?._id || r.applicationId, attemptCount: r.attemptCount, timeTakenMs: r.timeTakenMs })));
+
+    return finalResponses.sort((a: any, b: any) => {
       const aTime = new Date(a.submittedAt || a.updatedAt || a.createdAt).getTime();
       const bTime = new Date(b.submittedAt || b.updatedAt || b.createdAt).getTime();
       return bTime - aTime;
@@ -629,6 +682,12 @@ export class RoundsService {
         const scoreB = typeof b?.score === 'number' ? b.score : 0;
         if (scoreB !== scoreA) return scoreB - scoreA;
 
+        // Tie-break 1: less time taken wins.
+        const timeTakenA = typeof a?.timeTakenMs === 'number' && a.timeTakenMs > 0 ? a.timeTakenMs : Number.MAX_SAFE_INTEGER;
+        const timeTakenB = typeof b?.timeTakenMs === 'number' && b.timeTakenMs > 0 ? b.timeTakenMs : Number.MAX_SAFE_INTEGER;
+        if (timeTakenA !== timeTakenB) return timeTakenA - timeTakenB;
+
+        // Tie-break 2: candidate who submitted earlier wins.
         const aTime = new Date(a?.submittedAt || a?.updatedAt || a?.createdAt || 0).getTime();
         const bTime = new Date(b?.submittedAt || b?.updatedAt || b?.createdAt || 0).getTime();
         return aTime - bTime;
@@ -636,8 +695,8 @@ export class RoundsService {
       .slice(0, safeLimit)
       .map((response, index) => ({
         rank: index + 1,
-        candidateName: response?.applicationId?.candidateId?.name || 'Unknown Candidate',
-        candidateEmail: response?.applicationId?.candidateId?.email || '',
+        candidateName: response?.applicationId?.candidateId?.name || response?.candidateId?.name || 'Unknown Candidate',
+        candidateEmail: response?.applicationId?.candidateId?.email || response?.candidateId?.email || '',
         applicationId: response?.applicationId?._id?.toString?.() || response?.applicationId?.toString?.() || '',
         roundId: response?.roundId?._id?.toString?.() || response?.roundId?.toString?.() || roundId,
         jobId,
@@ -645,6 +704,8 @@ export class RoundsService {
         submittedAt: response?.submittedAt || response?.updatedAt || response?.createdAt || null,
         answers: response?.answers || [],
         isCorrect: response?.isCorrect || [],
+        attemptCount: response?.attemptCount || 0,
+        timeTakenMs: response?.timeTakenMs || 0,
       }));
 
     return ranked;
@@ -1523,6 +1584,7 @@ export class RoundsService {
     session.correctAnswersCount = correctCount;
     session.totalQuestions = totalQuestions;
     session.submittedAt = new Date();
+    session.endTime = new Date();
     await session.save();
 
     await this.mcqResponseModel.findOneAndUpdate(
@@ -1530,8 +1592,8 @@ export class RoundsService {
         roundId: new Types.ObjectId(roundId), 
         applicationId: new Types.ObjectId(applicationId), 
         candidateId: new Types.ObjectId(candidateId) 
-      },
-      {
+    },
+           {
         roundId: new Types.ObjectId(roundId),
         applicationId: new Types.ObjectId(applicationId),
         candidateId: new Types.ObjectId(candidateId),
