@@ -20,6 +20,9 @@ export class QuestionSet {
     medium?: number;
     hard?: number;
   };
+
+  @Prop({ type: String, enum: ['easy', 'medium', 'hard'] })
+  difficulty?: 'easy' | 'medium' | 'hard';
 }
 
 export const QuestionSetSchema = SchemaFactory.createForClass(QuestionSet);

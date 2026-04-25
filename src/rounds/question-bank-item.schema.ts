@@ -10,6 +10,13 @@ export enum QuestionDifficulty {
 export enum QuestionCategory {
   TECHNICAL = 'technical',
   APTITUDE = 'aptitude',
+  HR = 'hr',
+}
+
+export enum QuestionBankType {
+  MCQ = 'mcq',
+  VIDEO = 'video',
+  FREE_TEXT = 'free_text',
 }
 
 export type QuestionBankItemDocument = QuestionBankItem & Document;
@@ -22,10 +29,13 @@ export class QuestionBankItem {
   @Prop({ required: true, trim: true })
   questionText: string;
 
-  @Prop({ type: [String], required: true })
+  @Prop({ enum: QuestionBankType, default: QuestionBankType.MCQ })
+  questionType: QuestionBankType;
+
+  @Prop({ type: [String], default: [] })
   options: string[];
 
-  @Prop({ required: true, min: 0 })
+  @Prop({ default: 0, min: 0 })
   correctAnswer: number;
 
   @Prop({ enum: QuestionDifficulty, required: true })
@@ -36,6 +46,16 @@ export class QuestionBankItem {
 
   @Prop({ type: [String], default: [] })
   tags: string[];
+
+  /** Suggested time for this question (e.g. in interviews); MCQ rounds may still use round-level duration. */
+  @Prop({ min: 1, max: 480 })
+  durationMinutes?: number;
+
+  @Prop({ default: true })
+  autoSubmit: boolean;
+
+  @Prop({ default: false })
+  randomizeOptions: boolean;
 }
 
 export const QuestionBankItemSchema = SchemaFactory.createForClass(QuestionBankItem);

@@ -1,17 +1,33 @@
-import { IsArray, IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
-import { QuestionCategory, QuestionDifficulty } from '../question-bank-item.schema';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
+import { QuestionBankType, QuestionCategory, QuestionDifficulty } from '../question-bank-item.schema';
 
 export class CreateQuestionBankItemDto {
   @IsString()
   @MaxLength(2000)
   questionText: string;
 
-  @IsArray()
-  options: string[];
+  @IsOptional()
+  @IsEnum(QuestionBankType)
+  questionType?: QuestionBankType;
 
+  @IsOptional()
+  @IsArray()
+  options?: string[];
+
+  @IsOptional()
   @IsInt()
   @Min(0)
-  correctAnswer: number;
+  correctAnswer?: number;
 
   @IsEnum(QuestionDifficulty)
   difficulty: QuestionDifficulty;
@@ -22,4 +38,18 @@ export class CreateQuestionBankItemDto {
   @IsOptional()
   @IsArray()
   tags?: string[];
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(480)
+  durationMinutes?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  autoSubmit?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  randomizeOptions?: boolean;
 }

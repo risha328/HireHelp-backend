@@ -14,7 +14,7 @@ import { EmailService } from '../notifications/email.service';
 import { GoogleSheetsService } from './google-sheets.service';
 import { GoogleFormsService } from './google-forms.service';
 import { SubmitMcqDto } from './dto/submit-mcq.dto';
-import { QuestionBankItem, QuestionBankItemDocument } from './question-bank-item.schema';
+import { QuestionBankItem, QuestionBankItemDocument, QuestionBankType } from './question-bank-item.schema';
 import { QuestionSet, QuestionSetDocument } from './question-set.schema';
 import { ExamSession, ExamSessionDocument, ExamSessionStatus } from './exam-session.schema';
 import { UsersService } from '../users/users.service';
@@ -1202,19 +1202,56 @@ export class RoundsService {
 
   async createQuestionBankItem(companyId: string, dto: CreateQuestionBankItemDto): Promise<QuestionBankItem> {
     const companyObjectId = this.getCompanyObjectId(companyId);
+    const questionType = dto.questionType ?? QuestionBankType.MCQ;
+
+    const trimmedOptions = (dto.options ?? []).map((o) => String(o).trim()).filter(Boolean);
+    let options = trimmedOptions;
+    let correctAnswer = dto.correctAnswer ?? 0;
+
+    if (questionType === QuestionBankType.MCQ) {
+      if (options.length < 2) {
+        throw new BadRequestException('MCQ questions require at least two non-empty options');
+      }
+      if (correctAnswer < 0 || correctAnswer >= options.length) {
+        throw new BadRequestException('Correct answer index is out of range for the given options');
+      }
+    } else {
+      options = [];
+      correctAnswer = 0;
+    }
+
     const created = new this.questionBankModel({
-      ...dto,
+      questionText: dto.questionText.trim(),
+      questionType,
+      options,
+      correctAnswer,
+      difficulty: dto.difficulty,
+      category: dto.category,
+      tags: dto.tags ?? [],
+      durationMinutes: dto.durationMinutes,
+      autoSubmit: dto.autoSubmit ?? true,
+      randomizeOptions: dto.randomizeOptions ?? false,
       companyId: companyObjectId,
     });
     return created.save();
   }
 
-  async listQuestionBank(companyId: string, filters?: { category?: string; difficulty?: string; search?: string }): Promise<QuestionBankItem[]> {
+  async listQuestionBank(
+    companyId: string,
+    filters?: { category?: string; difficulty?: string; search?: string; questionType?: string },
+  ): Promise<QuestionBankItem[]> {
     const companyObjectId = this.getCompanyObjectIdOrNull(companyId);
     if (!companyObjectId) return [];
     const query: Record<string, any> = { companyId: companyObjectId };
     if (filters?.category) query.category = filters.category;
     if (filters?.difficulty) query.difficulty = filters.difficulty;
+    if (filters?.questionType) {
+      if (filters.questionType === QuestionBankType.MCQ) {
+        query.$or = [{ questionType: QuestionBankType.MCQ }, { questionType: { $exists: false } }, { questionType: null }];
+      } else {
+        query.questionType = filters.questionType;
+      }
+    }
     if (filters?.search) query.questionText = { $regex: filters.search, $options: 'i' };
     return this.questionBankModel.find(query).sort({ createdAt: -1 }).exec();
   }
@@ -1309,7 +1346,10 @@ export class RoundsService {
 
     let session = latestStatus === ExamSessionStatus.IN_PROGRESS ? latestSession : null;
 
-    const bankQuestions = await this.getQuestionSetQuestions(round);
+    const bankQuestionsRaw = await this.getQuestionSetQuestions(round);
+    const bankQuestions = bankQuestionsRaw.filter(
+      (q: QuestionBankItemDocument) => !q.questionType || q.questionType === QuestionBankType.MCQ,
+    );
     const inlineQuestions = (round.mcqQuestions || []).map((q, idx) => ({
       _id: new Types.ObjectId(`${idx + 1}`.padStart(24, '0')),
       questionText: q.question,

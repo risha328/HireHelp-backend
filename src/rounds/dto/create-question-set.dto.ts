@@ -1,4 +1,4 @@
-import { IsArray, IsMongoId, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsMongoId, IsOptional, IsString, IsObject } from 'class-validator';
 
 export class CreateQuestionSetDto {
   @IsString()
@@ -10,9 +10,14 @@ export class CreateQuestionSetDto {
   questionIds?: string[];
 
   @IsOptional()
+  @IsObject()
   difficultyDistribution?: {
     easy?: number;
     medium?: number;
     hard?: number;
   };
+
+  @IsOptional()
+  @IsString()
+  difficulty?: 'easy' | 'medium' | 'hard';
 }
