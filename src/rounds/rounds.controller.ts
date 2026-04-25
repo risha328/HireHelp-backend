@@ -256,8 +256,14 @@ export class RoundsController {
     @Query('category') category?: string,
     @Query('difficulty') difficulty?: string,
     @Query('search') search?: string,
+    @Query('questionType') questionType?: string,
   ) {
-    return this.roundsService.listQuestionBank(req.user.companyId, { category, difficulty, search });
+    return this.roundsService.listQuestionBank(req.user.companyId, {
+      category,
+      difficulty,
+      search,
+      questionType,
+    });
   }
 
   @Patch('question-bank/:id')
