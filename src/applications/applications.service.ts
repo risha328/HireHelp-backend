@@ -145,7 +145,7 @@ export class ApplicationsService {
       .exec();
   }
 
-  async updateStatus(id: string, status: string, notes?: string, currentRound?: string): Promise<Application> {
+  async updateStatus(id: string, status: string, notes?: string, currentRound?: string | null): Promise<Application> {
     // Get the current application to check previous status
     const currentApplication = await this.applicationModel.findById(id).populate('currentRound').exec();
     if (!currentApplication) {

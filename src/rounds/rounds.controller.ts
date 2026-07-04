@@ -324,7 +324,12 @@ export class RoundsController {
   @Post(':roundId/exam/submit')
   @Roles(Role.CANDIDATE)
   submitExam(@Req() req: any, @Param('roundId') roundId: string, @Body() dto: SubmitExamDto) {
-    return this.roundsService.submitExam(roundId, dto.applicationId, req.user.userId);
+    return this.roundsService.submitExam(
+      roundId,
+      dto.applicationId,
+      req.user.userId,
+      dto.timeoutSubmit ?? false,
+    );
   }
 
   @Get(':roundId/exam/session/:applicationId')

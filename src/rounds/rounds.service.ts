@@ -400,20 +400,22 @@ export class RoundsService {
       const application = await this.applicationsService.findOne(applicationId);
       const evaluatorId = (application.companyId as any)._id || application.companyId;
 
+      await this.applicationsService.updateStatus(applicationId, application.status, undefined, nextRound._id.toString());
       await this.assignCandidateToRound(nextRound._id.toString(), applicationId, evaluatorId.toString());
 
-      // Send next round notification email
-      try {
-        await this.emailService.sendNextRoundEmail(
-          (application.candidateId as any).email,
-          (application.candidateId as any).name,
-          (application.jobId as any).title,
-          (application.companyId as any).name,
-          nextRound.name,
-        );
-      } catch (error) {
+      // Email is sent by RoundEventsListener on ROUND_PASSED; do not block assignment on SMTP.
+      void this.emailService.sendNextRoundEmail(
+        (application.candidateId as any).email,
+        (application.candidateId as any).name,
+        (application.jobId as any).title,
+        (application.companyId as any).name,
+        nextRound.name,
+      ).catch((error) => {
         console.error('Failed to send next round email:', error);
-      }
+      });
+    } else {
+      const application = await this.applicationsService.findOne(applicationId);
+      await this.applicationsService.updateStatus(applicationId, application.status, undefined, null);
     }
   }
 
@@ -1524,7 +1526,30 @@ export class RoundsService {
       }
 
       // Recover session if missing due client refresh/race; then continue submit.
-      const startedSession = await this.startExam(roundId, applicationId, candidateId);
+      let startedSession: Awaited<ReturnType<typeof this.startExam>>;
+      try {
+        startedSession = await this.startExam(roundId, applicationId, candidateId);
+      } catch (error) {
+        const recoveredSubmitted = await this.findLatestExamSession(roundId, applicationId, candidateId);
+        const recoveredStatus = String(recoveredSubmitted?.status || '').toLowerCase();
+        if (
+          recoveredSubmitted &&
+          (recoveredStatus === ExamSessionStatus.SUBMITTED || recoveredStatus === ExamSessionStatus.TIMEOUT_SUBMITTED)
+        ) {
+          const passPercentage = round.passPercentage ?? 60;
+          const score = recoveredSubmitted.score ?? 0;
+          return {
+            score,
+            correctAnswersCount: recoveredSubmitted.correctAnswersCount,
+            totalQuestions: recoveredSubmitted.totalQuestions,
+            passed: score >= passPercentage,
+            passPercentage,
+            timeoutSubmit: recoveredSubmitted.status === ExamSessionStatus.TIMEOUT_SUBMITTED,
+            alreadySubmitted: true,
+          };
+        }
+        throw error;
+      }
       session = await this.examSessionModel.findById(startedSession.sessionId).exec();
       if (!session) throw new NotFoundException('No active exam session');
 
@@ -1578,8 +1603,9 @@ export class RoundsService {
     });
     const totalQuestions = session.questionOrder?.length || session.answers?.length || 0;
     const score = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
+    const timedOut = timeoutSubmit || new Date() > session.endTime;
 
-    session.status = timeoutSubmit ? ExamSessionStatus.TIMEOUT_SUBMITTED : ExamSessionStatus.SUBMITTED;
+    session.status = timedOut ? ExamSessionStatus.TIMEOUT_SUBMITTED : ExamSessionStatus.SUBMITTED;
     session.score = score;
     session.correctAnswersCount = correctCount;
     session.totalQuestions = totalQuestions;
@@ -1618,7 +1644,9 @@ export class RoundsService {
       evaluation.completedAt = new Date();
       await evaluation.save();
       if (passed) {
-        await this.assignToNextRound(applicationId, roundId);
+        void this.assignToNextRound(applicationId, roundId).catch((err) => {
+          console.error('Failed to assign candidate to next round after exam submit:', err);
+        });
       }
     }
 
@@ -1630,7 +1658,7 @@ export class RoundsService {
       score,
     });
 
-    return { score, correctAnswersCount: correctCount, totalQuestions, passed, passPercentage, timeoutSubmit };
+    return { score, correctAnswersCount: correctCount, totalQuestions, passed, passPercentage, timeoutSubmit: timedOut };
   }
 
   async getExamSession(roundId: string, applicationId: string, candidateId: string): Promise<ExamSession | null> {
